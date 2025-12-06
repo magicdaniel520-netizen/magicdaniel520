@@ -9,43 +9,26 @@
    <meta name="apple-mobile-web-app-status-bar-style" content="default">
    <meta name="apple-mobile-web-app-title" content="GearTracker">
    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3026/3026490.png">
-   
    <title>GearTracker 登山裝備管理</title>
    
-   <!-- Tailwind CSS -->
+   <!-- 1. 載入 Tailwind (樣式庫) -->
    <script src="https://cdn.tailwindcss.com"></script>
    <script>
        tailwind.config = {
            darkMode: 'class',
-           theme: {
-               extend: {
-                   colors: {
-                       slate: { 850: '#1e293b', 950: '#020617' },
-                       stone: { 50: '#fafaf9', 100: '#f5f5f4', 200: '#e7e5e4', 800: '#292524' }
-                   }
-               }
-           }
+           theme: { extend: { colors: { slate: { 850: '#1e293b', 950: '#020617' }, stone: { 50: '#fafaf9', 100: '#f5f5f4', 200: '#e7e5e4', 800: '#292524' } } } }
        }
    </script>
-   
-   <!-- React & ReactDOM -->
-   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-   
-   <!-- Babel -->
-   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-   
-   <!-- Screenshot Tool -->
-   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 
-   <!-- Icons -->
-   <script type="importmap">
-   {
-     "imports": {
-       "lucide-react": "https://esm.sh/lucide-react@0.263.1"
-     }
-   }
-   </script>
+   <!-- 2. 載入 React (核心庫) - 改用 cdnjs -->
+   <script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" onerror="handleScriptError('React')"></script>
+   <script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" onerror="handleScriptError('ReactDOM')"></script>
+   
+   <!-- 3. 載入 Babel (編譯器) - 改用 cdnjs -->
+   <script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js" onerror="handleScriptError('Babel')"></script>
+   
+   <!-- 4. 載入 html2canvas (截圖工具) -->
+   <script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" onerror="handleScriptError('html2canvas')"></script>
 
    <style>
        .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -53,26 +36,39 @@
        input, select, textarea { font-size: 16px !important; }
        .safe-pb { padding-bottom: env(safe-area-inset-bottom); }
        .safe-pt { padding-top: max(env(safe-area-inset-top), 16px); }
-       @keyframes modal-in {
-           from { opacity: 0; transform: scale(0.95) translateY(10px); }
-           to { opacity: 1; transform: scale(1) translateY(0); }
-       }
+       @keyframes modal-in { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
        .animate-modal { animation: modal-in 0.2s ease-out forwards; }
+       .modal-content { -webkit-overflow-scrolling: touch; }
    </style>
 </head>
 <body class="bg-slate-50 text-slate-900 font-sans overflow-hidden select-none">
    <div id="root"></div>
 
-   <!-- Error Handler -->
+   <!-- 錯誤處理腳本 -->
    <script>
-       window.onerror = function(message, source, lineno, colno, error) {
+       function handleScriptError(libraryName) {
            const root = document.getElementById('root');
+           root.innerHTML = `
+               <div style="padding: 40px 20px; color: #ef4444; text-align: center; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; font-family: system-ui, -apple-system, sans-serif;">
+                   <h3 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 10px;">⚠️ 載入失敗</h3>
+                   <p style="color: #374151; margin-bottom: 20px;">無法載入必要元件：<strong>${libraryName}</strong></p>
+                   <p style="font-size: 0.8rem; color: #6b7280;">請檢查您的網路連線，或稍後再試。</p>
+                   <button onclick="location.reload()" style="margin-top: 20px; background: #10b981; color: white; border: none; padding: 12px 24px; border-radius: 99px; font-weight: bold;">重新整理</button>
+               </div>
+           `;
+       }
+       window.onerror = function(msg, url, line) {
+           // 忽略 ResizeObserver loop 錯誤 (這是瀏覽器的良性錯誤)
+           if (msg.includes('ResizeObserver')) return false;
+           
+           const root = document.getElementById('root');
+           // 只有在 React 尚未啟動時才顯示全域錯誤
            if (!root.hasChildNodes()) {
                root.innerHTML = `
-                   <div style="padding: 20px; color: #ef4444; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; text-align: center;">
-                       <h3 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 0.5rem;">啟動失敗</h3>
-                       <p style="font-size: 0.875rem; opacity: 0.8;">${message}</p>
-                       <button onclick="location.reload()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #10b981; color: white; border: none; border-radius: 0.5rem;">重新整理</button>
+                   <div style="padding: 40px 20px; color: #ef4444; text-align: center; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; font-family: system-ui;">
+                       <h3 style="font-size: 1.25rem; font-weight: 800;">啟動錯誤</h3>
+                       <p style="margin-top:10px; font-size:0.9rem; color:#374151; background:#fee2e2; padding:10px; border-radius:8px;">${msg}</p>
+                       <button onclick="location.reload()" style="margin-top: 20px; background: #10b981; color: white; padding: 12px 24px; border-radius: 99px; font-weight: bold; border:none;">重新整理</button>
                    </div>
                `;
            }
@@ -80,29 +76,85 @@
        };
    </script>
 
-   <script type="text/babel" data-type="module">
-       import {
-           Plus, Trash2, Backpack, Scale, Tent, Utensils, Shirt, Zap, HelpCircle,
-           Home, Map, ClipboardList, ChevronRight, Calendar, Mountain, ArrowLeft,
-           CheckCircle2, Circle, Camera, Image as ImageIcon, DollarSign, Tag, Hash,
-           Share2, Edit3, X, CheckSquare, Square, Download, User, Database, RefreshCw,
-           AlertCircle, Droplets, Footprints, Settings, FileJson, Copy, Upload, Save,
-           Search, Filter, XCircle, Trophy, Trees, Heart, ShoppingBag, Gift, ArrowUpDown,
-           FileText, Moon, Sun, PieChart, BarChart2, Compass
-       } from 'lucide-react';
-
+   <script type="text/babel">
        const { useState, useEffect, useRef, useMemo } = React;
+
+       // --- 1. ICON SYSTEM (String Path Optimization) ---
+       // 使用字串而非 JSX 來儲存路徑，減輕 Babel 編譯負擔
+       const ICON_PATHS = {
+           Plus: "M5 12h14M12 5v14",
+           Trash2: "M3 6h18 M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6 M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2 M10 11v6 M14 11v6",
+           Backpack: "M4 20V10a2 2 0 0 1 2-2h2V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2h2a2 2 0 0 1 2 2v10 M9 6v2 M15 6v2 M9 20v-8h6v8 M9 16h6 M4 15h16",
+           Scale: "m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z m-14 0 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z M7 21h10 M12 3v18 M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2",
+           Tent: "M3.5 21 14 3 M20.5 21 10 3 M15.5 21 12 15l-3.5 6 M2 21h20",
+           Utensils: "M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2 M7 2v20 M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7",
+           Shirt: "M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z",
+           Zap: "M13 2 3 14 12 14 11 22 21 10 12 10 13 2",
+           HelpCircle: "M12 22c5.5 0 10-4.5 10-10S17.5 2 12 2 2 6.5 2 12s4.5 10 10 10z M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3 M12 17h.01",
+           Home: "m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22 9 12 15 12 15 22",
+           Map: "M3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21 M9 3v15 M15 6v15",
+           ClipboardList: "M8 2h8 M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2 M12 11h4 M12 16h4 M8 11h.01 M8 16h.01",
+           ChevronRight: "m9 18 6-6-6-6",
+           Calendar: "M3 4h18v16H3z M16 2v4 M8 2v4 M3 10h18",
+           Mountain: "m8 3 4 8 5-5 5 15H2L8 3z",
+           ArrowLeft: "m12 19-7-7 7-7 M19 12H5",
+           CheckCircle2: "M12 22c5.5 0 10-4.5 10-10S17.5 2 12 2 2 6.5 2 12s4.5 10 10 10z m-3-10 2 2 4-4",
+           Circle: "M12 22c5.5 0 10-4.5 10-10S17.5 2 12 2 2 6.5 2 12s4.5 10 10 10z",
+           Camera: "M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z M12 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
+           ImageIcon: "M3 3h18v18H3z M9 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4z m12 6-3.086-3.086a2 2 0 0 0-2.828 0L6 21",
+           DollarSign: "M12 2v20 M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6",
+           Tag: "M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z M7 7h.01",
+           Hash: "M4 9h16 M4 15h16 M10 3 8 21 M16 3 14 21",
+           Share2: "M18 5a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M6 12a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M18 19a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M8.59 13.51l6.83 3.98 M15.41 6.51l-6.82 3.98",
+           Edit3: "M12 20h9 M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z",
+           X: "M18 6 6 18 M6 6 12 12",
+           CheckSquare: "M9 11 12 14 22 4 M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11",
+           Square: "M3 3h18v18H3z",
+           Download: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10 12 15 17 10 M12 15V3",
+           User: "M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2 M12 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
+           Database: "M12 5c5 0 9-1.34 9-3s-4-3-9-3-9 1.34-9 3 4 3 9 3z M21 12c0 1.66-4 3-9 3s-9-1.34-9-3 M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5",
+           RefreshCw: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8 M21 3v5h-5 M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16 M8 16H3v5",
+           AlertCircle: "M12 22c5.5 0 10-4.5 10-10S17.5 2 12 2 2 6.5 2 12s4.5 10 10 10z M12 8v4 M12 16h.01",
+           Droplets: "M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7.29 6.75 7 5.3c-.29 1.45-1.14 2.8-2.29 3.76S3 11.1 3 12.25c0 2.22 1.8 4.05 4 4.05z M12.56 6.6A10.97 10.97 0 0 0 14 3.02c.5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a6.98 6.98 0 0 1-11.91 4.97",
+           Footprints: "M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 11 3.8 11 8c0 1.25-1 2-1 2.5 0 .4.19 1.31.7 1.88.37.42.51.68.48 1.12-.12 1.6-1.74 4.37-2.18 6.22-.5 2.12 1.5 3.28 1.5 3.28l-1 1h-2c-2.61 0-5.5-2.37-6.5-4.5 0 0 1.87-.5 1-3.5z M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 13 7.8 13 12c0 1.25 1 2 1 2.5 0 .4-.19 1.31-.7 1.88-.37.42-.51.68-.48 1.12.12 1.6 1.74 4.37 2.18 6.22.5 2.12-1.5 3.28-1.5 3.28l1 1h2c2.61 0 5.5-2.37 6.5-4.5 0 0-1.87-.5-1-3.5z",
+           Settings: "M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z M12 15a3 3 0 1 1 0-6 3 3 0 0 1 0 6z",
+           FileJson: "M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z M14 2 14 8 20 8",
+           Copy: "M8 8h10v14H8z M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2",
+           Upload: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M17 8 12 3 7 8 M12 3 12 15",
+           Save: "M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z M17 21 17 13 7 13 7 21 M7 3 7 8 15 8",
+           Search: "M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z M21 21l-4.35-4.35",
+           Filter: "M22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3",
+           XCircle: "M12 22c5.5 0 10-4.5 10-10S17.5 2 12 2 2 6.5 2 12s4.5 10 10 10z m3-13-6 6 m0-6 6 6",
+           Trophy: "M6 9H4.5a2.5 2.5 0 0 1 0-5H6 M18 9h1.5a2.5 2.5 0 0 0 0-5H18 M4 22h16 M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22 M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22 M18 2H6v7a6 6 0 0 0 12 0V2Z",
+           Trees: "M10 10v.2A3 3 0 0 1 8.9 16v0H5v0h0a3 3 0 0 1-1.1-5.8V10a3 3 0 0 1 6 0Z M7 16v6 M13 19v3 M12 19h8.3a1 1 0 0 0 .7-1.7L18 14h.3a1 1 0 0 0 .7-1.7L16 9h.2a1 1 0 0 0 .9-1.7l-3.5-6a1 1 0 0 0-1.7 0l-3.5 6a1 1 0 0 0 .9 1.7h.2l-1 3.3a1 1 0 0 0 .7 1.7H10l2 3.3z",
+           Heart: "M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z",
+           ShoppingBag: "M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z M3 6h18 M16 10a4 4 0 0 1-8 0",
+           Gift: "M3 8h18v4H3z M12 8v13 M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7 M7.5 8a2.5 2.5 0 0 1 0-5 4.8 4.8 0 0 1 4.5 5 4.8 4.8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5",
+           ArrowUpDown: "m21 16-4 4-4-4 M17 20V4 m-14 4 4-4 4 4 M7 4v16 M2 12h20",
+           FileText: "M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z M14 2 14 8 20 8 M16 13H8 M16 17H8 M10 9H8",
+           Moon: "M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z",
+           Sun: "M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0 M12 2v2 M12 20v2 M4.93 4.93 6.34 6.34 M17.66 17.66 19.07 19.07 M2 12h2 M20 12h2 M6.34 17.66 4.93 19.07 M19.07 4.93 17.66 6.34",
+           PieChart: "M21.21 15.89A10 10 0 1 1 8 2.83 M22 12A10 10 0 0 0 12 2v10z",
+           BarChart2: "M18 20V10 M12 20V4 M6 20v-6",
+           Compass: "M12 12m-10 0a10 10 0 1 0 20 0a10 10 0 1 0 -20 0 M16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"
+       };
+
+       const Icon = ({ name, size = 24, className, ...props }) => (
+           <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+               {ICON_PATHS[name] ? <path d={ICON_PATHS[name]} /> : <circle cx="12" cy="12" r="10" />}
+           </svg>
+       );
 
        // --- Constants ---
        const CATEGORIES = [
-           { id: 'all', name: '全部', icon: <Hash size={16} />, color: '#64748b' },
-           { id: 'backpack', name: '背包', icon: <Backpack size={16} />, color: '#f97316' },
-           { id: 'shelter', name: '帳篷', icon: <Tent size={16} />, color: '#eab308' },
-           { id: 'sleep', name: '睡眠', icon: <HelpCircle size={16} />, color: '#3b82f6' },
-           { id: 'kitchen', name: '廚房', icon: <Utensils size={16} />, color: '#ef4444' },
-           { id: 'clothing', name: '衣物', icon: <Shirt size={16} />, color: '#10b981' },
-           { id: 'electronics', name: '電子', icon: <Zap size={16} />, color: '#8b5cf6' },
-           { id: 'misc', name: '雜項', icon: <HelpCircle size={16} />, color: '#64748b' },
+           { id: 'all', name: '全部', icon: 'Hash', color: '#64748b' },
+           { id: 'backpack', name: '背包', icon: 'Backpack', color: '#f97316' },
+           { id: 'shelter', name: '帳篷', icon: 'Tent', color: '#eab308' },
+           { id: 'sleep', name: '睡眠', icon: 'HelpCircle', color: '#3b82f6' },
+           { id: 'kitchen', name: '廚房', icon: 'Utensils', color: '#ef4444' },
+           { id: 'clothing', name: '衣物', icon: 'Shirt', color: '#10b981' },
+           { id: 'electronics', name: '電子', icon: 'Zap', color: '#8b5cf6' },
+           { id: 'misc', name: '雜項', icon: 'HelpCircle', color: '#64748b' },
        ];
        const EDIT_CATEGORIES = CATEGORIES.filter(c => c.id !== 'all');
        const CLOTHING_SUBS = [
@@ -124,11 +176,11 @@
        const ConfirmModal = ({ isOpen, onClose, title, message, onConfirm }) => {
            if (!isOpen) return null;
            return (
-               <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+               <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4">
                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-                   <div className="bg-white dark:bg-slate-800 w-full max-w-xs rounded-2xl shadow-2xl z-10 p-5 animate-modal">
+                   <div className="bg-white dark:bg-slate-800 w-full max-w-xs mx-auto rounded-2xl shadow-2xl z-10 p-5 animate-modal">
                        <div className="flex flex-col items-center text-center gap-3">
-                           <div className="p-3 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full"><AlertCircle size={32} /></div>
+                           <div className="p-3 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full"><Icon name="AlertCircle" size={32} /></div>
                            <h3 className="font-bold text-lg text-slate-900 dark:text-white">{title}</h3>
                            <p className="text-sm text-slate-500 dark:text-slate-400">{message}</p>
                            <div className="flex gap-2 w-full mt-2">
@@ -159,14 +211,14 @@
                <div className="absolute top-1.5 left-2 text-[9px] text-stone-400 font-mono z-10 bg-white/80 px-1.5 py-0.5 rounded border border-stone-100">{label}</div>
                {item ? (
                    <>
-                       {item.image ? <img src={item.image} alt={item.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" /> : <div className="text-stone-300 flex flex-col items-center gap-1">{CATEGORIES.find(c => c.id === item.category)?.icon || placeholderIcon || <Shirt size={24} />}</div>}
+                       {item.image ? <img src={item.image} alt={item.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" /> : <div className="text-stone-300 flex flex-col items-center gap-1">{CATEGORIES.find(c => c.id === item.category)?.icon ? <Icon name={CATEGORIES.find(c => c.id === item.category).icon} size={24} /> : placeholderIcon}</div>}
                        <div className="absolute bottom-0 inset-x-0 bg-white/95 backdrop-blur-[2px] border-t border-stone-100 p-1.5"><p className="text-[10px] text-stone-800 text-center truncate font-medium leading-tight">{item.name}</p><div className="flex justify-center items-center gap-1 mt-0.5"><p className="text-[9px] text-emerald-700 font-mono">{item.weight}g</p></div></div>
                    </>
-               ) : <div className="text-stone-300/50 flex flex-col items-center gap-1">{placeholderIcon || <Plus size={20} />}</div>}
+               ) : <div className="text-stone-300/50 flex flex-col items-center gap-1">{placeholderIcon || <Icon name="Plus" size={20} />}</div>}
            </div>
        );
 
-       // --- Custom SVG Pie Chart (Replaces Recharts for stability) ---
+       // --- Custom SVG Pie Chart ---
        const SimplePieChart = ({ data }) => {
            const total = data.reduce((sum, item) => sum + item.value, 0);
            let cumulativeAngle = 0;
@@ -208,12 +260,12 @@
            }).filter(d => d.value > 0).sort((a,b) => b.value - a.value);
            
            return (
-               <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+               <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-                   <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl shadow-xl z-10 p-5 animate-modal flex flex-col max-h-[85vh]">
-                       <div className="flex justify-between items-center mb-4">
-                           <h3 className="font-bold text-lg text-slate-800 dark:text-white flex items-center gap-2"><PieChart size={20}/> 庫存統計</h3>
-                           <button onClick={onClose}><X size={20} className="text-slate-400" /></button>
+                   <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-t-2xl sm:rounded-2xl shadow-xl z-10 p-5 animate-modal flex flex-col max-h-[85dvh] border border-slate-200 dark:border-slate-700">
+                       <div className="flex justify-between items-center mb-4 shrink-0">
+                           <h3 className="font-bold text-lg text-slate-800 dark:text-white flex items-center gap-2"><Icon name="PieChart" size={20}/> 庫存統計</h3>
+                           <button onClick={onClose}><Icon name="X" size={20} className="text-slate-400" /></button>
                        </div>
                        <div className="flex-1 overflow-y-auto no-scrollbar">
                            <div className="py-4"><SimplePieChart data={data} /></div>
@@ -231,7 +283,6 @@
            );
        };
 
-       // --- 簡約版 ShareOverlay ---
        const ShareOverlay = ({ plan, inventory, onClose }) => {
            const cardRef = useRef(null);
            const [downloadStatus, setDownloadStatus] = useState('idle');
@@ -247,12 +298,12 @@
            return (
                <div className="fixed inset-0 bg-stone-50 z-50 overflow-y-auto overflow-x-hidden flex flex-col animate-in fade-in duration-300 font-sans text-stone-800">
                    <div className="sticky top-0 bg-stone-50/95 backdrop-blur-md p-4 safe-pt flex justify-between items-center z-10 border-b border-stone-200">
-                       <button onClick={onClose} className="text-stone-500 hover:text-stone-800 flex items-center gap-2 px-2 py-1 hover:bg-stone-100 rounded-lg transition-colors"><X size={20} /> <span className="text-sm font-medium">關閉</span></button>
-                       <button onClick={handleDownload} disabled={downloadStatus === 'processing'} className={`px-5 py-2 rounded-full text-sm font-bold flex items-center gap-2 transition-all shadow-lg ${downloadStatus === 'error' ? 'bg-red-500 text-white' : downloadStatus === 'success' ? 'bg-emerald-600 text-white' : 'bg-stone-800 text-white shadow-stone-900/20'} disabled:opacity-50`}>{downloadStatus === 'processing' ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Download size={18} />}{downloadStatus === 'processing' ? '處理中...' : downloadStatus === 'error' ? '失敗' : downloadStatus === 'success' ? '已儲存！' : '儲存圖片'}</button>
+                       <button onClick={onClose} className="text-stone-500 hover:text-stone-800 flex items-center gap-2 px-2 py-1 hover:bg-stone-100 rounded-lg transition-colors"><Icon name="X" size={20} /> <span className="text-sm font-medium">關閉</span></button>
+                       <button onClick={handleDownload} disabled={downloadStatus === 'processing'} className={`px-5 py-2 rounded-full text-sm font-bold flex items-center gap-2 transition-all shadow-lg ${downloadStatus === 'error' ? 'bg-red-500 text-white' : downloadStatus === 'success' ? 'bg-emerald-600 text-white' : 'bg-stone-800 text-white shadow-stone-900/20'} disabled:opacity-50`}>{downloadStatus === 'processing' ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Icon name="Download" size={18} />}{downloadStatus === 'processing' ? '處理中...' : downloadStatus === 'error' ? '失敗' : downloadStatus === 'success' ? '已儲存！' : '儲存圖片'}</button>
                    </div>
                    <div className="flex-1 p-4 md:p-8 flex justify-center items-start overflow-auto">
                        <div ref={cardRef} className="bg-stone-50 text-stone-800 w-full max-w-2xl rounded-none shadow-xl border border-stone-200 relative overflow-hidden">
-                           <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none"><Mountain size={300} /></div>
+                           <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none"><Icon name="Mountain" size={300} /></div>
                            <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-emerald-50/50 to-transparent pointer-events-none"></div>
                            <div className="bg-white/50 p-8 border-b border-stone-200 flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative z-10">
                                <div>
@@ -266,8 +317,8 @@
                                    <div className="text-[10px] text-stone-400 mt-1 font-mono">Total: {((baseWeight+consumableWeight)/1000).toFixed(2)} kg</div>
                                </div>
                            </div>
-                           <div className="p-8 relative z-10"><div className="flex flex-col gap-10"><div><h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest flex items-center gap-2 border-b border-stone-200 pb-2 mb-6"><User size={14} /> Wearing System</h3><div className="grid grid-cols-3 gap-4"><div className="col-start-2"><ItemSlot item={findCloth('hat')} label="HEAD" placeholderIcon={<User size={20} />} /></div><ItemSlot item={findCloth('mid_layer')} label="MID" placeholderIcon={<Shirt size={20} />} /><ItemSlot item={findCloth('base_layer')} label="BASE" placeholderIcon={<Shirt size={20} />} /><ItemSlot item={findCloth('hard_shell_jacket')} label="SHELL" placeholderIcon={<Shirt size={20} />} /><ItemSlot item={findCloth('gloves')} label="GLOVES" placeholderIcon={<HelpCircle size={20} />} /><ItemSlot item={findCloth('soft_shell_pants')} label="PANTS" placeholderIcon={<User size={20} />} /><ItemSlot item={findCloth('hard_shell_pants')} label="RAIN" placeholderIcon={<User size={20} />} /><ItemSlot item={findCloth('socks')} label="SOCKS" placeholderIcon={<HelpCircle size={20} />} /><ItemSlot item={findCloth('shoes')} label="BOOTS" placeholderIcon={<User size={20} />} /><ItemSlot item={findCloth('other')} label="ACC" placeholderIcon={<HelpCircle size={20} />} /></div></div><div><h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest flex items-center gap-2 border-b border-stone-200 pb-2 mb-6"><Backpack size={14} /> Backpack Inventory</h3><div className="space-y-6">{otherItemsByCat.map(group => (<div key={group.id}><div className="flex items-center gap-3 mb-3"><span className="text-emerald-700 bg-emerald-50 p-1 rounded-full">{group.icon}</span><span className="text-[11px] font-bold uppercase text-stone-600 tracking-wider">{group.name}</span><div className="h-px bg-stone-100 flex-1"></div></div><div className="grid grid-cols-2 sm:grid-cols-3 gap-3">{group.items.map(item => (<div key={item.id} className={`bg-white rounded-lg border border-stone-100 p-2 flex gap-3 items-center ${item.isConsumable ? 'border-l-2 border-l-blue-300' : ''}`}><div className="w-10 h-10 shrink-0 bg-stone-50 rounded-md overflow-hidden flex items-center justify-center border border-stone-100">{item.image ? <img src={item.image} alt="" className="w-full h-full object-cover" /> : <div className="text-stone-300">{group.icon}</div>}</div><div className="min-w-0 flex-1"><p className="text-[11px] text-stone-800 truncate font-medium">{item.name}</p><div className="flex justify-between items-center mt-0.5"><p className="text-[9px] text-stone-400 truncate max-w-[60px]">{item.brand}</p><p className="text-[9px] text-emerald-600 font-mono">{item.weight}g</p></div></div></div>))}</div></div>))}</div></div></div></div>
-                           <div className="bg-stone-100 p-4 text-center border-t border-stone-200"><div className="flex items-center justify-center gap-2 text-[10px] text-stone-400 font-mono tracking-widest uppercase"><Mountain size={12} /><span>Created with GearTracker</span></div></div>
+                           <div className="p-8 relative z-10"><div className="flex flex-col gap-10"><div><h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest flex items-center gap-2 border-b border-stone-200 pb-2 mb-6"><Icon name="User" size={14} /> Wearing System</h3><div className="grid grid-cols-3 gap-4"><ItemSlot item={findCloth('gloves')} label="GLOVES" placeholderIcon={<Icon name="HelpCircle" size={20} />} /><ItemSlot item={findCloth('hat')} label="HEAD" placeholderIcon={<Icon name="User" size={20} />} /><ItemSlot item={findCloth('other')} label="ACC" placeholderIcon={<Icon name="HelpCircle" size={20} />} /><ItemSlot item={findCloth('mid_layer')} label="MID" placeholderIcon={<Icon name="Shirt" size={20} />} /><ItemSlot item={findCloth('base_layer')} label="BASE" placeholderIcon={<Icon name="Shirt" size={20} />} /><ItemSlot item={findCloth('hard_shell_jacket')} label="SHELL" placeholderIcon={<Icon name="Shirt" size={20} />} /><ItemSlot item={findCloth('down_jacket')} label="DOWN" placeholderIcon={<Icon name="Shirt" size={20} />} /><ItemSlot item={findCloth('soft_shell_pants')} label="PANTS" placeholderIcon={<Icon name="User" size={20} />} /><ItemSlot item={findCloth('hard_shell_pants')} label="RAIN" placeholderIcon={<Icon name="User" size={20} />} /><ItemSlot item={findCloth('socks')} label="SOCKS" placeholderIcon={<Icon name="HelpCircle" size={20} />} /><ItemSlot item={findCloth('shoes')} label="BOOTS" placeholderIcon={<Icon name="User" size={20} />} /><div className="aspect-square"></div></div></div><div><h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest flex items-center gap-2 border-b border-stone-200 pb-2 mb-6"><Icon name="Backpack" size={14} /> Backpack Inventory</h3><div className="space-y-6">{otherItemsByCat.map(group => (<div key={group.id}><div className="flex items-center gap-3 mb-3"><span className="text-emerald-700 bg-emerald-50 p-1 rounded-full"><Icon name={group.icon} size={14}/></span><span className="text-[11px] font-bold uppercase text-stone-600 tracking-wider">{group.name}</span><div className="h-px bg-stone-100 flex-1"></div></div><div className="grid grid-cols-2 sm:grid-cols-3 gap-3">{group.items.map(item => (<div key={item.id} className={`bg-white rounded-lg border border-stone-100 p-2 flex gap-3 items-center ${item.isConsumable ? 'border-l-2 border-l-blue-300' : ''}`}><div className="w-10 h-10 shrink-0 bg-stone-50 rounded-md overflow-hidden flex items-center justify-center border border-stone-100">{item.image ? <img src={item.image} alt="" className="w-full h-full object-cover" /> : <div className="text-stone-300"><Icon name={group.icon} size={16}/></div>}</div><div className="min-w-0 flex-1"><p className="text-[11px] text-stone-800 truncate font-medium">{item.name}</p><div className="flex justify-between items-center mt-0.5"><p className="text-[9px] text-stone-400 truncate max-w-[60px]">{item.brand}</p><p className="text-[9px] text-emerald-600 font-mono">{item.weight}g</p></div></div></div>))}</div></div>))}</div></div></div></div>
+                           <div className="bg-stone-100 p-4 text-center border-t border-stone-200"><div className="flex items-center justify-center gap-2 text-[10px] text-stone-400 font-mono tracking-widest uppercase"><Icon name="Mountain" size={12} /><span>Created with GearTracker</span></div></div>
                        </div>
                    </div>
                </div>
@@ -277,8 +328,14 @@
        const GearFormModal = ({ isOpen, onClose, initialData, onSave, onDelete }) => {
            const [formData, setFormData] = useState(initialData);
            const fileInputRef = useRef(null);
-           useEffect(() => { if (isOpen) setFormData(initialData || { name: '', weight: '', category: 'backpack', brand: '', model: '', price: '', subCategory: '', image: null, isConsumable: false, isWorn: false, status: 'owned' }); }, [isOpen, initialData]);
-           if (!isOpen) return null;
+           useEffect(() => {
+               if (isOpen) {
+                   setFormData(initialData || { name: '', weight: '', category: 'backpack', brand: '', model: '', price: '', subCategory: '', image: null, isConsumable: false, isWorn: false, status: 'owned' });
+               }
+           }, [isOpen, initialData]);
+           
+           if (!isOpen || !formData) return null;
+           
            const handleImageUpload = async (e) => { const file = e.target.files[0]; if (file) { const compressedDataUrl = await compressImage(file); setFormData({ ...formData, image: compressedDataUrl }); } };
            const handleSubmit = (e) => { e.preventDefault(); onSave({ ...formData, weight: Number(formData.weight), price: Number(formData.price) }); onClose(); };
            const isEditMode = !!initialData?.id;
@@ -289,13 +346,15 @@
                    <div className="bg-white dark:bg-slate-900 w-full max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl pointer-events-auto flex flex-col max-h-[85dvh] animate-modal border border-slate-200 dark:border-slate-800">
                        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center shrink-0">
                            <h3 className="font-bold text-lg text-slate-800 dark:text-white">{isEditMode ? '編輯裝備' : '新增裝備'}</h3>
-                           <button onClick={onClose} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500"><X size={20} /></button>
+                           <button onClick={onClose} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500"><Icon name="X" size={20} /></button>
                        </div>
-                       <div className="flex-1 overflow-y-auto p-4 space-y-5 text-slate-900 dark:text-slate-100">
-                           <div className="flex justify-center"><div onClick={() => fileInputRef.current?.click()} className="w-full aspect-video rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center cursor-pointer overflow-hidden relative group">{formData.image ? <><img src={formData.image} className="w-full h-full object-cover" /><div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100"><span className="text-white text-xs font-bold bg-black/50 px-2 py-1 rounded-full">更換圖片</span></div></> : <div className="text-center text-slate-400"><Camera size={32} className="mx-auto mb-2 opacity-50" /><span className="text-xs font-medium">點擊上傳</span></div>}<input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" /></div></div>
+                       
+                       {/* SCROLLABLE BODY */}
+                       <div className="flex-1 overflow-y-auto p-4 space-y-5 text-slate-900 dark:text-slate-100 modal-content">
+                           <div className="flex justify-center"><div onClick={() => fileInputRef.current?.click()} className="w-full aspect-video rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center cursor-pointer overflow-hidden relative group">{formData.image ? <><img src={formData.image} className="w-full h-full object-cover" /><div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100"><span className="text-white text-xs font-bold bg-black/50 px-2 py-1 rounded-full">更換圖片</span></div></> : <div className="text-center text-slate-400"><Icon name="Camera" size={32} className="mx-auto mb-2 opacity-50" /><span className="text-xs font-medium">點擊上傳</span></div>}<input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" /></div></div>
                            <div className="bg-slate-50 dark:bg-slate-800 p-1 rounded-lg flex border border-slate-200 dark:border-slate-700">
-                               <button type="button" onClick={() => setFormData({...formData, status: 'owned'})} className={`flex-1 py-2 text-sm font-bold rounded-md flex items-center justify-center gap-2 transition-all ${formData.status === 'owned' ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}><CheckCircle2 size={16} /> 已擁有</button>
-                               <button type="button" onClick={() => setFormData({...formData, status: 'wishlist'})} className={`flex-1 py-2 text-sm font-bold rounded-md flex items-center justify-center gap-2 transition-all ${formData.status === 'wishlist' ? 'bg-white dark:bg-slate-700 text-amber-500 dark:text-amber-400 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}><Gift size={16} /> 願望清單</button>
+                               <button type="button" onClick={() => setFormData({...formData, status: 'owned'})} className={`flex-1 py-2 text-sm font-bold rounded-md flex items-center justify-center gap-2 transition-all ${formData.status === 'owned' ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}><Icon name="CheckCircle2" size={16} /> 已擁有</button>
+                               <button type="button" onClick={() => setFormData({...formData, status: 'wishlist'})} className={`flex-1 py-2 text-sm font-bold rounded-md flex items-center justify-center gap-2 transition-all ${formData.status === 'wishlist' ? 'bg-white dark:bg-slate-700 text-amber-500 dark:text-amber-400 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}><Icon name="Gift" size={16} /> 願望清單</button>
                            </div>
                            <div className="space-y-3">
                                <div><label className="text-xs font-bold text-slate-500 mb-1 block">名稱 *</label><input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl" required /></div>
@@ -311,14 +370,16 @@
                                <div><label className="text-xs font-bold text-slate-500 mb-1 block">價格 ($)</label><input type="number" value={formData.price} onChange={(e) => setFormData({...formData, price: e.target.value})} className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono" /></div>
                            </div>
                            <div className="flex gap-4">
-                               <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 flex-1 p-2 border border-transparent rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800"><input type="checkbox" checked={formData.isConsumable} onChange={(e) => setFormData({...formData, isConsumable: e.target.checked})} className="accent-blue-500 w-4 h-4" /><Droplets size={16} className="text-blue-500" />消耗品</label>
-                               <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 flex-1 p-2 border border-transparent rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800"><input type="checkbox" checked={formData.isWorn} onChange={(e) => setFormData({...formData, isWorn: e.target.checked})} className="accent-amber-500 w-4 h-4" /><Footprints size={16} className="text-amber-500" />身上穿著</label>
+                               <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 flex-1 p-2 border border-transparent rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800"><input type="checkbox" checked={formData.isConsumable} onChange={(e) => setFormData({...formData, isConsumable: e.target.checked})} className="accent-blue-500 w-4 h-4" /><Icon name="Droplets" size={16} className="text-blue-500" />消耗品</label>
+                               <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 flex-1 p-2 border border-transparent rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800"><input type="checkbox" checked={formData.isWorn} onChange={(e) => setFormData({...formData, isWorn: e.target.checked})} className="accent-amber-500 w-4 h-4" /><Icon name="Footprints" size={16} className="text-amber-500" />身上穿著</label>
                            </div>
                        </div>
-                       <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex gap-3 bg-slate-50/50 dark:bg-slate-900/50 safe-pb sticky bottom-0">
-                           {isEditMode && (<button onClick={() => { onDelete(formData.id); onClose(); }} className="p-3 text-red-500 bg-red-50 dark:bg-red-900/20 rounded-xl"><Trash2 size={20} /></button>)}
-                           {isEditMode && (<button onClick={() => { onSave({ ...formData, id: Date.now(), name: `${formData.name} (複製)` }); onClose(); }} className="p-3 text-slate-500 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"><Copy size={20} /></button>)}
-                           <button onClick={handleSubmit} className="flex-1 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700">{isEditMode ? '儲存變更' : '新增裝備'}</button>
+
+                       {/* FIXED FOOTER */}
+                       <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex gap-3 bg-slate-50/50 dark:bg-slate-900/50 safe-pb shrink-0">
+                           {isEditMode && (<button onClick={() => { onDelete(formData.id); onClose(); }} className="p-3 text-red-500 bg-red-50 dark:bg-red-900/20 rounded-xl"><Icon name="Trash2" size={20} /></button>)}
+                           {isEditMode && (<button onClick={() => { onSave({ ...formData, id: Date.now(), name: `${formData.name} (複製)` }); onClose(); }} className="p-3 text-slate-500 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"><Icon name="Copy" size={20} /></button>)}
+                           <button onClick={handleSubmit} className="flex-1 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 shadow-md shadow-emerald-200 active:scale-[0.98] transition-all">{isEditMode ? '儲存變更' : '新增裝備'}</button>
                        </div>
                    </div>
                </div>
@@ -349,7 +410,6 @@
        };
        
        // --- Main Component Logic ---
-
        const PlanDetail = ({ plan, inventory, onUpdatePlan, onBack, initialMode = 'view' }) => {
            const [mode, setMode] = useState(initialMode);
            const [showShare, setShowShare] = useState(false);
@@ -357,109 +417,18 @@
            const [searchTerm, setSearchTerm] = useState('');
            const packedItems = plan.packedItems || [];
            const selectedItems = inventory.filter(item => plan.items.includes(item.id));
-           
-           // Stats calculation
            const wornWeight = selectedItems.filter(i => i.isWorn).reduce((sum, i) => sum + Number(i.weight), 0);
            const consumableWeight = selectedItems.filter(i => i.isConsumable).reduce((sum, i) => sum + Number(i.weight), 0);
            const baseWeight = selectedItems.filter(i => !i.isWorn && !i.isConsumable).reduce((sum, i) => sum + Number(i.weight), 0);
            const totalPackWeight = baseWeight + consumableWeight;
-           
-           const toggleSelection = (itemId) => {
-               const isSelected = plan.items.includes(itemId);
-               const newItems = isSelected ? plan.items.filter(id => id !== itemId) : [...plan.items, itemId];
-               const newPacked = isSelected ? packedItems.filter(id => id !== itemId) : packedItems;
-               onUpdatePlan({ ...plan, items: newItems, packedItems: newPacked });
-           };
-
-           const togglePacked = (itemId) => {
-               const isPacked = packedItems.includes(itemId);
-               const newPacked = isPacked ? packedItems.filter(id => id !== itemId) : [...packedItems, itemId];
-               onUpdatePlan({ ...plan, packedItems: newPacked });
-           };
-           
-           // Filtering for Edit Mode
-           const displayItems = mode === 'edit'
-               ? inventory.filter(i => (i.name + (i.brand||'') + (i.model||'')).toLowerCase().includes(searchTerm.toLowerCase()))
-               : selectedItems;
-           
-           const itemsByCategory = EDIT_CATEGORIES.map(cat => ({
-               ...cat,
-               items: displayItems.filter(item => item.category === cat.id)
-           })).filter(group => group.items.length > 0);
-
+           const toggleSelection = (itemId) => { const isSelected = plan.items.includes(itemId); const newItems = isSelected ? plan.items.filter(id => id !== itemId) : [...plan.items, itemId]; const newPacked = isSelected ? packedItems.filter(id => id !== itemId) : packedItems; onUpdatePlan({ ...plan, items: newItems, packedItems: newPacked }); };
+           const togglePacked = (itemId) => { const isPacked = packedItems.includes(itemId); const newPacked = isPacked ? packedItems.filter(id => id !== itemId) : [...packedItems, itemId]; onUpdatePlan({ ...plan, packedItems: newPacked }); };
+           const displayItems = mode === 'edit' ? inventory.filter(i => (i.name + (i.brand||'') + (i.model||'')).toLowerCase().includes(searchTerm.toLowerCase())) : selectedItems;
+           const itemsByCategory = EDIT_CATEGORIES.map(cat => ({ ...cat, items: displayItems.filter(item => item.category === cat.id) })).filter(group => group.items.length > 0);
            if (showShare) return <ShareOverlay plan={plan} inventory={inventory} onClose={() => setShowShare(false)} />;
-           
            return (
                <div className="pb-20 bg-slate-50 dark:bg-slate-950 min-h-screen">
-                   <div className="sticky top-0 z-20 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm safe-pt">
-                       <div className="p-3 flex items-center justify-between">
-                           <div className="flex items-center gap-2">
-                               <button onClick={onBack} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500 dark:text-slate-400"><ArrowLeft size={20} /></button>
-                               <div>
-                                   <h2 className="font-bold text-slate-800 dark:text-white text-base flex items-center gap-2">{plan.name} <button onClick={() => setIsSettingsOpen(true)}><Settings size={14} className="text-slate-400" /></button></h2>
-                                   <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 font-mono">{mode === 'view' ? <span>已打包: {packedItems.length}/{selectedItems.length}</span> : <span>已選: {selectedItems.length} 項</span>}</div>
-                               </div>
-                           </div>
-                           <div className="flex gap-2">
-                               {mode === 'view' && <button onClick={() => setShowShare(true)} className="p-2 text-slate-500 dark:text-slate-400 hover:text-emerald-600"><Share2 size={20} /></button>}
-                               <button onClick={() => setMode(mode === 'view' ? 'edit' : 'view')} className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${mode === 'edit' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}>
-                                   {mode === 'edit' ? <CheckCircle2 size={16} /> : <Edit3 size={16} />}
-                                   {mode === 'edit' ? '完成' : '編輯'}
-                               </button>
-                           </div>
-                       </div>
-                       <div className="px-4 py-3 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
-                          <div className="flex justify-between items-end mb-2">
-                              <div className="text-xs text-slate-500 dark:text-slate-400">
-                                  <span className="font-bold text-emerald-600 dark:text-emerald-400">基礎: {(baseWeight / 1000).toFixed(2)}kg</span>
-                                  <span className="mx-2 opacity-30">|</span>
-                                  <span>背負: {(totalPackWeight / 1000).toFixed(2)}kg</span>
-                              </div>
-                              <div className="text-[10px] text-slate-400">穿著: {(wornWeight/1000).toFixed(1)}kg</div>
-                          </div>
-                          <StatBar base={baseWeight} consumable={consumableWeight} worn={wornWeight} />
-                       </div>
-                       {mode === 'edit' && (
-                           <div className="p-2 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
-                               <div className="relative">
-                                   <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
-                                   <input type="text" placeholder="搜尋裝備加入清單..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-9 pr-3 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none dark:text-white" />
-                               </div>
-                           </div>
-                       )}
-                   </div>
-                   {plan.notes && mode === 'view' && <div className="mx-4 mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900/50 rounded-lg text-sm text-yellow-800 dark:text-yellow-200 flex gap-2"><FileText size={16} className="shrink-0 mt-0.5" /><p className="whitespace-pre-wrap">{plan.notes}</p></div>}
-                   <div className="p-4 space-y-4">
-                       {itemsByCategory.map(group => (
-                           <div key={group.id} className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-                               <div className="px-4 py-2 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700 flex items-center gap-2 font-medium text-slate-700 dark:text-slate-300 text-sm">{group.icon}{group.name}</div>
-                               <div className="divide-y divide-slate-100 dark:divide-slate-700">
-                                   {group.items.map(item => {
-                                       const isSelected = plan.items.includes(item.id);
-                                       const isPacked = packedItems.includes(item.id);
-                                       const handleClick = () => { if (mode === 'edit') toggleSelection(item.id); else togglePacked(item.id); };
-                                       let active = false; if (mode === 'edit') active = isSelected; if (mode === 'view') active = isPacked;
-                                       return (
-                                           <div key={item.id} onClick={handleClick} className={`p-3 flex items-center justify-between cursor-pointer transition-all ${mode === 'view' && isPacked ? 'bg-slate-50 dark:bg-slate-900 opacity-60 grayscale' : ''} ${mode === 'edit' && isSelected ? 'bg-emerald-50/50 dark:bg-emerald-900/20' : ''}`}>
-                                               <div className="flex items-center gap-3 overflow-hidden flex-1">
-                                                   <div className={`transition-colors shrink-0 ${active ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-300 dark:text-slate-600'}`}>{mode === 'edit' ? (active ? <CheckCircle2 size={22} className="fill-emerald-100 dark:fill-emerald-900" /> : <Circle size={22} />) : (active ? <CheckSquare size={22} className="fill-emerald-100 dark:fill-emerald-900" /> : <Square size={22} />)}</div>
-                                                   {item.image && <img src={item.image} className="w-12 h-9 rounded object-cover border border-slate-200 dark:border-slate-600" />}
-                                                   <div className="min-w-0 flex-1">
-                                                       <span className={`block truncate ${mode === 'view' && isPacked ? 'line-through decoration-slate-400' : 'text-slate-900 dark:text-slate-100 font-medium'}`}>{item.name}</span>
-                                                       <div className="flex items-center gap-2 mt-0.5"><span className="text-[10px] text-slate-400 block truncate">{[item.brand, item.model].filter(Boolean).join(' ')}</span></div>
-                                                   </div>
-                                               </div>
-                                               <span className="text-xs font-mono text-slate-400 shrink-0 ml-2">{item.weight}g</span>
-                                           </div>
-                                       );
-                                   })}
-                               </div>
-                           </div>
-                       ))}
-                       {itemsByCategory.length === 0 && <div className="text-center py-10 text-slate-400"><p>沒有項目</p></div>}
-                   </div>
-                   <PlanSettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} plan={plan} onSave={onUpdatePlan} />
-               </div>
+                   <div className="sticky top-0 z-20 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm safe-pt"><div className="p-3 flex items-center justify-between"><div className="flex items-center gap-2"><button onClick={onBack} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500 dark:text-slate-400"><Icon name="ArrowLeft" size={20} /></button><div><h2 className="font-bold text-slate-800 dark:text-white text-base flex items-center gap-2">{plan.name} <button onClick={() => setIsSettingsOpen(true)}><Icon name="Settings" size={14} className="text-slate-400" /></button></h2><div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 font-mono">{mode === 'view' ? <span>已打包: {packedItems.length}/{selectedItems.length}</span> : <span>已選: {selectedItems.length} 項</span>}</div></div></div><div className="flex gap-2">{mode === 'view' && <button onClick={() => setShowShare(true)} className="p-2 text-slate-500 dark:text-slate-400 hover:text-emerald-600"><Icon name="Share2" size={20} /></button>}<button onClick={() => setMode(mode === 'view' ? 'edit' : 'view')} className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${mode === 'edit' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}>{mode === 'edit' ? <Icon name="CheckCircle2" size={16} /> : <Icon name="Edit3" size={16} />}{mode === 'edit' ? '完成' : '編輯'}</button></div></div><div className="px-4 py-3 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800"><div className="flex justify-between items-end mb-2"><div className="text-xs text-slate-500 dark:text-slate-400"><span className="font-bold text-emerald-600 dark:text-emerald-400">基礎: {(baseWeight / 1000).toFixed(2)}kg</span><span className="mx-2 opacity-30">|</span><span>背負: {(totalPackWeight / 1000).toFixed(2)}kg</span></div><div className="text-[10px] text-slate-400">穿著: {(wornWeight/1000).toFixed(1)}kg</div></div><StatBar base={baseWeight} consumable={consumableWeight} worn={wornWeight} /></div>{mode === 'edit' && (<div className="p-2 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800"><div className="relative"><Icon name="Search" className="absolute left-3 top-2.5 text-slate-400" size={16} /><input type="text" placeholder="搜尋裝備加入清單..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-9 pr-3 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none dark:text-white" /></div></div>)}</div>{plan.notes && mode === 'view' && <div className="mx-4 mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900/50 rounded-lg text-sm text-yellow-800 dark:text-yellow-200 flex gap-2"><Icon name="FileText" size={16} className="shrink-0 mt-0.5" /><p className="whitespace-pre-wrap">{plan.notes}</p></div>}<div className="p-4 space-y-4">{itemsByCategory.map(group => (<div key={group.id} className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden"><div className="px-4 py-2 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700 flex items-center gap-2 font-medium text-slate-700 dark:text-slate-300 text-sm"><Icon name={group.icon} size={16} />{group.name}</div><div className="divide-y divide-slate-100 dark:divide-slate-700">{group.items.map(item => { const isSelected = plan.items.includes(item.id); const isPacked = packedItems.includes(item.id); const handleClick = () => { if (mode === 'edit') toggleSelection(item.id); else togglePacked(item.id); }; let active = false; if (mode === 'edit') active = isSelected; if (mode === 'view') active = isPacked; return (<div key={item.id} onClick={handleClick} className={`p-3 flex items-center justify-between cursor-pointer transition-all ${mode === 'view' && isPacked ? 'bg-slate-50 dark:bg-slate-900 opacity-60 grayscale' : ''} ${mode === 'edit' && isSelected ? 'bg-emerald-50/50 dark:bg-emerald-900/20' : ''} ${item.status === 'wishlist' ? 'border-l-4 border-l-amber-400' : ''}`}><div className="flex items-center gap-3 overflow-hidden flex-1"><div className={`transition-colors shrink-0 ${active ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-300 dark:text-slate-600'}`}>{mode === 'edit' ? (active ? <Icon name="CheckCircle2" size={22} className="fill-emerald-100 dark:fill-emerald-900" /> : <Icon name="Circle" size={22} />) : (active ? <Icon name="CheckSquare" size={22} className="fill-emerald-100 dark:fill-emerald-900" /> : <Icon name="Square" size={22} />)}</div>{item.image && <img src={item.image} className="w-12 h-9 rounded object-cover border border-slate-200 dark:border-slate-600" />}<div className="min-w-0 flex-1"><div className="flex items-center gap-2"><span className={`block truncate transition-all ${mode === 'view' && isPacked ? 'text-slate-400 line-through decoration-slate-400' : 'text-slate-900 font-medium'}`}>{item.name}</span>{item.status==='wishlist' && <span className="text-[9px] text-amber-500 border border-amber-200 bg-amber-50 px-1 rounded">願望</span>}</div><div className="flex items-center gap-2 mt-0.5">{item.isConsumable && <span className="bg-blue-100 text-blue-700 text-[9px] px-1.5 rounded">消耗品</span>}{item.isWorn && <span className="bg-amber-100 text-amber-700 text-[9px] px-1.5 rounded">穿著</span>}<span className="text-[10px] text-slate-400 block truncate">{[item.brand, item.model].filter(Boolean).join(' ')}</span></div></div></div><span className="text-xs font-mono text-slate-400 shrink-0 ml-2">{item.weight}g</span></div>); })}</div></div>))}{itemsByCategory.length === 0 && <div className="text-center py-10 text-slate-400"><p>沒有項目</p></div>}</div><PlanSettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} plan={plan} onSave={onUpdatePlan} /></div>
            );
        };
 
@@ -467,7 +436,7 @@
        const HomeView = ({ inventory, plans, records, baiyueLog, xiaoBaiyueLog, setCurrentView }) => {
            const ownedInventory = inventory.filter(i => i.status !== 'wishlist');
            return (
-               <div className="space-y-6 pb-20"><header className="mb-8 pt-4 flex justify-between items-start safe-pt"><div><h1 className="text-3xl font-bold text-slate-900">早安，山友 🏔️</h1><p className="text-slate-500">準備好下一次的冒險了嗎？</p></div><button onClick={() => setCurrentView(VIEWS.SETTINGS)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors"><Settings size={24} /></button></header><div className="grid grid-cols-2 gap-4"><div className="bg-emerald-600 text-white p-5 rounded-2xl shadow-lg shadow-emerald-200"><p className="text-emerald-100 text-sm font-medium">庫存裝備</p><p className="text-4xl font-bold mt-1">{ownedInventory.length}</p><p className="text-xs mt-2 opacity-80">總重: {(ownedInventory.reduce((sum, i) => sum + Number(i.weight), 0) / 1000).toFixed(2)} kg</p></div><div className="bg-white text-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200"><p className="text-slate-500 text-sm font-medium flex items-center gap-1"><Trophy size={14} className="text-amber-500" /> 百岳進度</p><div className="mt-2 flex items-end gap-1"><span className="text-4xl font-bold text-slate-800">{Object.keys(baiyueLog).length}</span><span className="text-sm text-slate-400 mb-1">/ 100</span></div><div className="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden"><div className="bg-amber-500 h-full" style={{ width: `${Object.keys(baiyueLog).length}%` }}></div></div></div></div><h3 className="font-bold text-slate-700 mt-4 px-1">快速功能</h3><div className="space-y-3"><button onClick={() => setCurrentView(VIEWS.INVENTORY)} className="w-full bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between hover:bg-slate-50 transition-colors"><div className="flex items-center gap-4"><div className="bg-orange-100 p-3 rounded-full text-orange-600"><Backpack size={20} /></div><div className="text-left"><p className="font-bold text-slate-800">管理裝備庫</p><p className="text-xs text-slate-500">新增你的新玩具</p></div></div><ChevronRight className="text-slate-300" /></button><button onClick={() => setCurrentView(VIEWS.PLANS)} className="w-full bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between hover:bg-slate-50 transition-colors"><div className="flex items-center gap-4"><div className="bg-blue-100 p-3 rounded-full text-blue-600"><ClipboardList size={20} /></div><div className="text-left"><p className="font-bold text-slate-800">打包檢查清單</p><p className="text-xs text-slate-500">計算這次行程的總重</p></div></div><ChevronRight className="text-slate-300" /></button><button onClick={() => setCurrentView(VIEWS.RECORDS)} className="w-full bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between hover:bg-slate-50 transition-colors"><div className="flex items-center gap-4"><div className="bg-purple-100 p-3 rounded-full text-purple-600"><Mountain size={20} /></div><div className="text-left"><p className="font-bold text-slate-800">山岳記錄</p><p className="text-xs text-slate-500">百岳、小百岳與郊山</p></div></div><ChevronRight className="text-slate-300" /></button></div></div>
+               <div className="space-y-6 pb-20"><header className="mb-8 pt-4 flex justify-between items-start safe-pt"><div><h1 className="text-3xl font-bold text-slate-900">早安，山友 🏔️</h1><p className="text-slate-500">準備好下一次的冒險了嗎？</p></div><button onClick={() => setCurrentView(VIEWS.SETTINGS)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors"><Icon name="Settings" size={24} /></button></header><div className="grid grid-cols-2 gap-4"><div className="bg-emerald-600 text-white p-5 rounded-2xl shadow-lg shadow-emerald-200"><p className="text-emerald-100 text-sm font-medium">庫存裝備</p><p className="text-4xl font-bold mt-1">{ownedInventory.length}</p><p className="text-xs mt-2 opacity-80">總重: {(ownedInventory.reduce((sum, i) => sum + Number(i.weight), 0) / 1000).toFixed(2)} kg</p></div><div className="bg-white text-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200"><p className="text-slate-500 text-sm font-medium flex items-center gap-1"><Icon name="Trophy" size={14} className="text-amber-500" /> 百岳進度</p><div className="mt-2 flex items-end gap-1"><span className="text-4xl font-bold text-slate-800">{Object.keys(baiyueLog).length}</span><span className="text-sm text-slate-400 mb-1">/ 100</span></div><div className="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden"><div className="bg-amber-500 h-full" style={{ width: `${Object.keys(baiyueLog).length}%` }}></div></div></div></div><h3 className="font-bold text-slate-700 mt-4 px-1">快速功能</h3><div className="space-y-3"><button onClick={() => setCurrentView(VIEWS.INVENTORY)} className="w-full bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between hover:bg-slate-50 transition-colors"><div className="flex items-center gap-4"><div className="bg-orange-100 p-3 rounded-full text-orange-600"><Icon name="Backpack" size={20} /></div><div className="text-left"><p className="font-bold text-slate-800">管理裝備庫</p><p className="text-xs text-slate-500">新增你的新玩具</p></div></div><Icon name="ChevronRight" className="text-slate-300" /></button><button onClick={() => setCurrentView(VIEWS.PLANS)} className="w-full bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between hover:bg-slate-50 transition-colors"><div className="flex items-center gap-4"><div className="bg-blue-100 p-3 rounded-full text-blue-600"><Icon name="ClipboardList" size={20} /></div><div className="text-left"><p className="font-bold text-slate-800">打包檢查清單</p><p className="text-xs text-slate-500">計算這次行程的總重</p></div></div><Icon name="ChevronRight" className="text-slate-300" /></button><button onClick={() => setCurrentView(VIEWS.RECORDS)} className="w-full bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between hover:bg-slate-50 transition-colors"><div className="flex items-center gap-4"><div className="bg-purple-100 p-3 rounded-full text-purple-600"><Icon name="Mountain" size={20} /></div><div className="text-left"><p className="font-bold text-slate-800">山岳記錄</p><p className="text-xs text-slate-500">百岳、小百岳與郊山</p></div></div><Icon name="ChevronRight" className="text-slate-300" /></button></div></div>
            );
        };
 
@@ -502,30 +471,30 @@
                <div className="space-y-6 pb-24">
                    <header className="flex flex-col gap-4 mb-2 safe-pt">
                        <div className="flex justify-between items-start">
-                           <h2 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2"><Backpack className="text-emerald-600" /> 裝備庫</h2>
+                           <h2 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2"><Icon name="Backpack" className="text-emerald-600" /> 裝備庫</h2>
                            <div className="text-right">
                                <div className="text-emerald-800 dark:text-emerald-400 text-xs font-mono font-bold bg-emerald-100 dark:bg-emerald-900/30 px-2 py-1 rounded">總重: {(totalWeight / 1000).toFixed(2)} kg</div>
-                               <div className="text-[10px] text-slate-400 mt-1 cursor-pointer hover:text-emerald-500 flex items-center justify-end gap-1" onClick={() => setIsAnalyticsOpen(true)}><BarChart2 size={10} /> 統計圖表</div>
+                               <div className="text-[10px] text-slate-400 mt-1 cursor-pointer hover:text-emerald-500 flex items-center justify-end gap-1" onClick={() => setIsAnalyticsOpen(true)}><Icon name="BarChart2" size={10} /> 統計圖表</div>
                            </div>
                        </div>
                        <div className="space-y-3">
                            <div className="flex gap-2">
                                <div className="relative flex-1">
-                                   <Search className="absolute left-3 top-2.5 text-slate-400" size={18} />
+                                   <Icon name="Search" className="absolute left-3 top-2.5 text-slate-400" size={18} />
                                    <input type="text" placeholder="搜尋..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-base dark:text-white" />
-                                   {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-3 top-2.5 text-slate-400"><XCircle size={18} /></button>}
+                                   {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-3 top-2.5 text-slate-400"><Icon name="XCircle" size={18} /></button>}
                                </div>
                                <div className="relative">
                                    <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 py-2 pl-3 pr-8 rounded-lg focus:outline-none text-sm font-medium h-full">
                                        <option value="default">新到舊</option><option value="weight_desc">重量↓</option><option value="weight_asc">重量↑</option><option value="price_desc">價格↓</option>
                                    </select>
-                                   <ArrowUpDown className="absolute right-2 top-2.5 text-slate-400 pointer-events-none" size={14} />
+                                   <Icon name="ArrowUpDown" className="absolute right-2 top-2.5 text-slate-400 pointer-events-none" size={14} />
                                </div>
                            </div>
                            <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
                                {CATEGORIES.map(cat => (
                                    <button key={cat.id} onClick={() => setSelectedCategory(cat.id)} className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border ${selectedCategory === cat.id ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'}`}>
-                                       {cat.icon}{cat.name}
+                                       <Icon name={cat.icon} />{cat.name}
                                    </button>
                                ))}
                            </div>
@@ -536,11 +505,11 @@
                            <div key={item.id} onClick={() => openEditModal(item)} className={`bg-white dark:bg-slate-800 p-3 rounded-xl border flex items-center justify-between group active:scale-[0.99] transition-all cursor-pointer shadow-sm ${item.status === 'wishlist' ? 'border-dashed border-amber-300 dark:border-amber-700/50 bg-amber-50/30 dark:bg-amber-900/10' : 'border-slate-100 dark:border-slate-700'}`}>
                                <div className="flex items-center gap-4 overflow-hidden flex-1">
                                    <div className="shrink-0 w-14 h-14 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center overflow-hidden border border-slate-200 dark:border-slate-600 relative">
-                                       {item.image ? <img src={item.image} className="w-full h-full object-cover" /> : <div className="text-slate-400 dark:text-slate-500">{CATEGORIES.find(c=>c.id===item.category)?.icon}</div>}
-                                       {item.status === 'wishlist' && <div className="absolute top-0 right-0 bg-amber-400 text-white p-0.5 rounded-bl-md"><Gift size={10} /></div>}
+                                       {item.image ? <img src={item.image} className="w-full h-full object-cover" /> : <div className="text-slate-400 dark:text-slate-500">{CATEGORIES.find(c=>c.id===item.category)?.icon ? <Icon name={CATEGORIES.find(c=>c.id===item.category).icon} /> : null}</div>}
+                                       {item.status === 'wishlist' && <div className="absolute top-0 right-0 bg-amber-400 text-white p-0.5 rounded-bl-md"><Icon name="Gift" size={10} /></div>}
                                    </div>
                                    <div className="min-w-0 flex-1">
-                                       <div className="flex items-center gap-2 mb-0.5"><h3 className={`font-bold truncate ${item.status === 'wishlist' ? 'text-slate-600 dark:text-slate-400' : 'text-slate-800 dark:text-white'}`}>{item.name}</h3>{item.isConsumable && <Droplets size={12} className="text-blue-500" />}{item.isWorn && <Footprints size={12} className="text-amber-500" />}</div>
+                                       <div className="flex items-center gap-2 mb-0.5"><h3 className={`font-bold truncate ${item.status === 'wishlist' ? 'text-slate-600 dark:text-slate-400' : 'text-slate-800 dark:text-white'}`}>{item.name}</h3>{item.isConsumable && <Icon name="Droplets" size={12} className="text-blue-500" />}{item.isWorn && <Icon name="Footprints" size={12} className="text-amber-500" />}</div>
                                        <div className="flex flex-wrap items-center gap-x-2 text-xs text-slate-500 dark:text-slate-400">{(item.brand || item.model) && <span className="bg-slate-100 dark:bg-slate-700 px-1.5 rounded truncate max-w-[120px]">{[item.brand, item.model].filter(Boolean).join(' ')}</span>}</div>
                                    </div>
                                </div>
@@ -551,9 +520,9 @@
                            </div>
                        ))}
                        {items.length > 0 && filteredItems.length === 0 && <div className="p-8 text-center text-slate-400 text-sm">沒有符合搜尋的裝備</div>}
-                       {items.length === 0 && <div className="p-10 text-center text-slate-400 flex flex-col items-center"><ImageIcon className="h-12 w-12 mb-3 opacity-20" /><p className="mb-4">目前沒有裝備</p></div>}
+                       {items.length === 0 && <div className="p-10 text-center text-slate-400 flex flex-col items-center"><Icon name="ImageIcon" className="h-12 w-12 mb-3 opacity-20" /><p className="mb-4">目前沒有裝備</p></div>}
                    </section>
-                   <button onClick={() => { setEditingItem(null); setIsModalOpen(true); }} className="fixed bottom-24 right-6 w-14 h-14 bg-emerald-600 text-white rounded-full shadow-lg shadow-emerald-600/40 flex items-center justify-center hover:bg-emerald-500 active:scale-95 transition-all z-40"><Plus size={28} /></button>
+                   <button onClick={() => { setEditingItem(null); setIsModalOpen(true); }} className="fixed bottom-24 right-6 w-14 h-14 bg-emerald-600 text-white rounded-full shadow-lg shadow-emerald-600/40 flex items-center justify-center hover:bg-emerald-500 active:scale-95 transition-all z-40"><Icon name="Plus" size={28} /></button>
                    <GearFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} initialData={editingItem} onSave={handleSaveItem} onDelete={handleDeleteItem} />
                    <AnalyticsModal isOpen={isAnalyticsOpen} onClose={() => setIsAnalyticsOpen(false)} items={items} />
                </div>
@@ -570,9 +539,9 @@
            const handleDuplicatePlan = (e, originalPlan) => { e.stopPropagation(); const newPlan = { ...originalPlan, id: Date.now(), name: `${originalPlan.name} (複製)`, packedItems: [], createdAt: Date.now() }; setPlans([newPlan, ...plans]); };
            return (
                <div className="space-y-6 pb-20">
-                   <h2 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2 safe-pt"><ClipboardList className="text-emerald-600" /> 計畫裝備清單</h2>
-                   <section className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4"><form onSubmit={handleAdd} className="flex gap-2"><input type="text" value={newPlan.name} onChange={(e) => setNewPlan({...newPlan, name: e.target.value})} placeholder="新增計畫" className="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-base dark:bg-slate-900 dark:border-slate-600 dark:text-white" required /><button type="submit" className="bg-emerald-600 text-white px-4 rounded-lg hover:bg-emerald-700"><Plus /></button></form></section>
-                   <div className="grid gap-3">{plans.map(plan => { const currentWeight = inventory.filter(i => plan.items.includes(i.id)).reduce((sum, i) => sum + Number(i.weight), 0); const packedCount = plan.packedItems ? plan.packedItems.length : 0; const totalCount = plan.items.length; const progress = totalCount > 0 ? (packedCount / totalCount) * 100 : 0; return (<div key={plan.id} onClick={() => setActivePlanId(plan.id)} className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 hover:border-emerald-400 transition-all cursor-pointer group active:scale-[0.98]"><div className="flex justify-between items-start"><div className="flex-1"><h3 className="font-bold text-slate-800 dark:text-white group-hover:text-emerald-500 text-lg">{plan.name}</h3><div className="flex items-center gap-3 mt-1 mb-2"><span className="text-xs bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 px-2 py-0.5 rounded-full">{totalCount} 件物品</span><span className="text-xs font-mono font-medium text-emerald-600 dark:text-emerald-400">{(currentWeight / 1000).toFixed(2)} kg</span></div><div className="w-full max-w-[200px] h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${progress}%` }}></div></div><p className="text-[10px] text-slate-400 mt-1">打包進度: {packedCount}/{totalCount}</p></div><div className="flex items-center gap-2 self-start"><button onClick={(e) => handleDuplicatePlan(e, plan)} className="text-slate-300 hover:text-emerald-500 p-2"><Copy size={16} /></button><button onClick={(e) => handleDeletePlan(e, plan.id)} className="text-red-300 hover:text-red-500 p-2 -mr-2"><Trash2 size={16} /></button></div></div></div>); })}{plans.length === 0 && <div className="text-center py-10 text-slate-400"><p>還沒有計畫</p></div>}</div>
+                   <h2 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2 safe-pt"><Icon name="ClipboardList" className="text-emerald-600" /> 計畫裝備清單</h2>
+                   <section className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4"><form onSubmit={handleAdd} className="flex gap-2"><input type="text" value={newPlan.name} onChange={(e) => setNewPlan({...newPlan, name: e.target.value})} placeholder="新增計畫" className="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-base dark:bg-slate-900 dark:border-slate-600 dark:text-white" required /><button type="submit" className="bg-emerald-600 text-white px-4 rounded-lg hover:bg-emerald-700"><Icon name="Plus" /></button></form></section>
+                   <div className="grid gap-3">{plans.map(plan => { const currentWeight = inventory.filter(i => plan.items.includes(i.id)).reduce((sum, i) => sum + Number(i.weight), 0); const packedCount = plan.packedItems ? plan.packedItems.length : 0; const totalCount = plan.items.length; const progress = totalCount > 0 ? (packedCount / totalCount) * 100 : 0; return (<div key={plan.id} onClick={() => setActivePlanId(plan.id)} className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 hover:border-emerald-400 transition-all cursor-pointer group active:scale-[0.98]"><div className="flex justify-between items-start"><div className="flex-1"><h3 className="font-bold text-slate-800 dark:text-white group-hover:text-emerald-500 text-lg">{plan.name}</h3><div className="flex items-center gap-3 mt-1 mb-2"><span className="text-xs bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 px-2 py-0.5 rounded-full">{totalCount} 件物品</span><span className="text-xs font-mono font-medium text-emerald-600 dark:text-emerald-400">{(currentWeight / 1000).toFixed(2)} kg</span></div><div className="w-full max-w-[200px] h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${progress}%` }}></div></div><p className="text-[10px] text-slate-400 mt-1">打包進度: {packedCount}/{totalCount}</p></div><div className="flex items-center gap-2 self-start"><button onClick={(e) => handleDuplicatePlan(e, plan)} className="text-slate-300 hover:text-emerald-500 p-2"><Icon name="Copy" size={16} /></button><button onClick={(e) => handleDeletePlan(e, plan.id)} className="text-red-300 hover:text-red-500 p-2 -mr-2"><Icon name="Trash2" size={16} /></button></div></div></div>); })}{plans.length === 0 && <div className="text-center py-10 text-slate-400"><p>還沒有計畫</p></div>}</div>
                </div>
            );
        };
@@ -582,8 +551,8 @@
            const handleAddSuburban = (e) => { e.preventDefault(); if (!newRecord.name) return; setRecords([...records, { id: Date.now(), ...newRecord }]); setNewRecord({ name: '', date: '', notes: '' }); };
            const handleDeleteSuburban = (id) => confirm('刪除記錄', '確定要刪除此記錄嗎？', () => setRecords(records.filter(r => r.id !== id)));
            const toggleMountainLog = (type, id, date) => { const log = type === 'baiyue' ? baiyueLog : xiaoBaiyueLog; const setLog = type === 'baiyue' ? setBaiyueLog : setXiaoBaiyueLog; if (log[id]) { const newLog = { ...log }; delete newLog[id]; setLog(newLog); } else { setLog({ ...log, [id]: date || new Date().toISOString().split('T')[0] }); } };
-           const renderMountainList = (list, log, type) => { const filtered = list.filter(m => m.name.includes(searchTerm)); const completedCount = Object.keys(log).length; return (<div className="space-y-4 animate-in fade-in"><div className="bg-slate-800 dark:bg-slate-900 text-white p-4 rounded-xl shadow-md"><div className="flex justify-between items-end mb-2"><h3 className="font-bold text-lg">{type === 'baiyue' ? '台灣百岳' : '小百岳'}</h3><span className="font-mono text-emerald-400 text-xl font-bold">{completedCount} <span className="text-sm text-slate-400">/ 100</span></span></div><div className="w-full bg-slate-700 h-2 rounded-full overflow-hidden"><div className="bg-emerald-500 h-full transition-all duration-500" style={{ width: `${completedCount}%` }}></div></div></div><div className="relative"><Search className="absolute left-3 top-2.5 text-slate-400" size={18} /><input type="text" placeholder="搜尋山岳..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 text-base bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:text-white" /></div><div className="space-y-2">{filtered.map(m => { const isCompleted = !!log[m.id]; return (<div key={m.id} className={`p-3 rounded-lg border flex items-center justify-between transition-colors ${isCompleted ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'}`}><div className="flex-1"><div className="flex items-center gap-2"><h4 className={`font-bold ${isCompleted ? 'text-emerald-800 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-200'}`}>{m.name}</h4><span className="text-xs text-slate-400 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">{m.height}m</span>{m.location && <span className="text-xs text-slate-400">{m.location}</span>}</div>{isCompleted && <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1"><Calendar size={12} /> {log[m.id]} 攻頂</div>}</div><div className="flex items-center gap-2">{!isCompleted ? (<input type="date" className="text-xs border rounded p-1 text-slate-500 w-28 bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white" onChange={(e) => { if(e.target.value) toggleMountainLog(type, m.id, e.target.value); }} />) : (<button onClick={() => toggleMountainLog(type, m.id)} className="text-emerald-600 hover:text-emerald-700"><CheckCircle2 size={24} className="fill-emerald-100 dark:fill-emerald-900" /></button>)}</div></div>); })}</div></div>); };
-           return (<div className="space-y-6 pb-20"><h2 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2 safe-pt"><Mountain className="text-emerald-600" /> 山岳記錄</h2><div className="flex p-1 bg-slate-200 dark:bg-slate-800 rounded-xl"><button onClick={() => setActiveTab('baiyue')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'baiyue' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-600'}`}>百岳</button><button onClick={() => setActiveTab('xiaobaiyue')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'xiaobaiyue' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-600'}`}>小百岳</button><button onClick={() => setActiveTab('suburban')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'suburban' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-600'}`}>郊山</button></div>{activeTab === 'baiyue' && renderMountainList(BAI_YUE_LIST, baiyueLog, 'baiyue')}{activeTab === 'xiaobaiyue' && renderMountainList(XIAO_BAI_YUE_LIST, xiaoBaiyueLog, 'xiaobaiyue')}{activeTab === 'suburban' && (<div className="space-y-4 animate-in fade-in"><section className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4"><h3 className="font-bold text-slate-700 dark:text-slate-300 mb-3 text-sm">新增郊山/活動記錄</h3><form onSubmit={handleAddSuburban} className="space-y-3"><input type="text" value={newRecord.name} onChange={(e) => setNewRecord({...newRecord, name: e.target.value})} placeholder="活動名稱" className="w-full px-3 py-2 border rounded-lg text-base dark:bg-slate-900 dark:border-slate-600 dark:text-white" required /><div className="flex gap-2"><input type="date" value={newRecord.date} onChange={(e) => setNewRecord({...newRecord, date: e.target.value})} className="flex-1 px-3 py-2 border rounded-lg text-base bg-white dark:bg-slate-900 dark:border-slate-600 dark:text-white" /><button type="submit" className="bg-emerald-600 text-white px-4 rounded-lg text-sm">新增</button></div></form></section><div className="space-y-3">{records.map(rec => (<div key={rec.id} className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex justify-between items-center"><div><h3 className="font-bold text-slate-800 dark:text-white">{rec.name}</h3><p className="text-sm text-slate-500 flex items-center gap-1"><Calendar size={14} /> {rec.date || '未設定日期'}</p></div><button onClick={() => handleDeleteSuburban(rec.id)} className="text-red-300 hover:text-red-500 p-2"><Trash2 size={18} /></button></div>))}{records.length === 0 && <p className="text-center text-slate-400 mt-8 text-sm">還沒有郊山記錄</p>}</div></div>)}</div>);
+           const renderMountainList = (list, log, type) => { const filtered = list.filter(m => m.name.includes(searchTerm)); const completedCount = Object.keys(log).length; return (<div className="space-y-4 animate-in fade-in"><div className="bg-slate-800 dark:bg-slate-900 text-white p-4 rounded-xl shadow-md"><div className="flex justify-between items-end mb-2"><h3 className="font-bold text-lg">{type === 'baiyue' ? '台灣百岳' : '小百岳'}</h3><span className="font-mono text-emerald-400 text-xl font-bold">{completedCount} <span className="text-sm text-slate-400">/ 100</span></span></div><div className="w-full bg-slate-700 h-2 rounded-full overflow-hidden"><div className="bg-emerald-500 h-full transition-all duration-500" style={{ width: `${completedCount}%` }}></div></div></div><div className="relative"><Icon name="Search" className="absolute left-3 top-2.5 text-slate-400" size={18} /><input type="text" placeholder="搜尋山岳..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 text-base bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:text-white" /></div><div className="space-y-2">{filtered.map(m => { const isCompleted = !!log[m.id]; return (<div key={m.id} className={`p-3 rounded-lg border flex items-center justify-between transition-colors ${isCompleted ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'}`}><div className="flex-1"><div className="flex items-center gap-2"><h4 className={`font-bold ${isCompleted ? 'text-emerald-800 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-200'}`}>{m.name}</h4><span className="text-xs text-slate-400 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">{m.height}m</span>{m.location && <span className="text-xs text-slate-400">{m.location}</span>}</div>{isCompleted && <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1"><Icon name="Calendar" size={12} /> {log[m.id]} 攻頂</div>}</div><div className="flex items-center gap-2">{!isCompleted ? (<input type="date" className="text-xs border rounded p-1 text-slate-500 w-28 bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white" onChange={(e) => { if(e.target.value) toggleMountainLog(type, m.id, e.target.value); }} />) : (<button onClick={() => toggleMountainLog(type, m.id)} className="text-emerald-600 hover:text-emerald-700"><Icon name="CheckCircle2" size={24} className="fill-emerald-100 dark:fill-emerald-900" /></button>)}</div></div>); })}</div></div>); };
+           return (<div className="space-y-6 pb-20"><h2 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2 safe-pt"><Icon name="Mountain" className="text-emerald-600" /> 山岳記錄</h2><div className="flex p-1 bg-slate-200 dark:bg-slate-800 rounded-xl"><button onClick={() => setActiveTab('baiyue')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'baiyue' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-600'}`}>百岳</button><button onClick={() => setActiveTab('xiaobaiyue')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'xiaobaiyue' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-600'}`}>小百岳</button><button onClick={() => setActiveTab('suburban')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'suburban' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-600'}`}>郊山</button></div>{activeTab === 'baiyue' && renderMountainList(BAI_YUE_LIST, baiyueLog, 'baiyue')}{activeTab === 'xiaobaiyue' && renderMountainList(XIAO_BAI_YUE_LIST, xiaoBaiyueLog, 'xiaobaiyue')}{activeTab === 'suburban' && (<div className="space-y-4 animate-in fade-in"><section className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4"><h3 className="font-bold text-slate-700 dark:text-slate-300 mb-3 text-sm">新增郊山/活動記錄</h3><form onSubmit={handleAddSuburban} className="space-y-3"><input type="text" value={newRecord.name} onChange={(e) => setNewRecord({...newRecord, name: e.target.value})} placeholder="活動名稱" className="w-full px-3 py-2 border rounded-lg text-base dark:bg-slate-900 dark:border-slate-600 dark:text-white" required /><div className="flex gap-2"><input type="date" value={newRecord.date} onChange={(e) => setNewRecord({...newRecord, date: e.target.value})} className="flex-1 px-3 py-2 border rounded-lg text-base bg-white dark:bg-slate-900 dark:border-slate-600 dark:text-white" /><button type="submit" className="bg-emerald-600 text-white px-4 rounded-lg text-sm">新增</button></div></form></section><div className="space-y-3">{records.map(rec => (<div key={rec.id} className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex justify-between items-center"><div><h3 className="font-bold text-slate-800 dark:text-white">{rec.name}</h3><p className="text-sm text-slate-500 flex items-center gap-1"><Icon name="Calendar" size={14} /> {rec.date || '未設定日期'}</p></div><button onClick={() => handleDeleteSuburban(rec.id)} className="text-red-300 hover:text-red-500 p-2"><Icon name="Trash2" size={18} /></button></div>))}{records.length === 0 && <p className="text-center text-slate-400 mt-8 text-sm">還沒有郊山記錄</p>}</div></div>)}</div>);
        };
 
        const SettingsView = ({ inventory, plans, records, onImportData, baiyueLog, xiaoBaiyueLog, darkMode, setDarkMode, confirm }) => {
@@ -593,7 +562,7 @@
            const confirmImport = () => { if (pendingData) { onImportData(pendingData); setPendingData(null); setMsg('資料還原成功！'); setTimeout(() => setMsg(''), 3000); } };
            const resetAll = () => { confirm('重置所有資料', '警告：此動作將會刪除所有裝備、計畫與記錄，且無法復原。確定要執行嗎？', () => { localStorage.clear(); window.location.reload(); }); };
 
-           return ( <div className="pb-20 space-y-6"><h2 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2 safe-pt"><Settings className="text-slate-600" /> 設定與備份</h2>{pendingData && (<div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4 animate-in fade-in duration-200"><div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-sm w-full shadow-2xl"><h3 className="font-bold text-lg text-slate-800 dark:text-white mb-2 flex items-center gap-2"><AlertCircle className="text-amber-500" /> 確認還原？</h3><p className="text-slate-600 dark:text-slate-300 text-sm mb-4">這將會覆蓋您目前的有資料。<br/>包含裝備、計畫與所有山岳記錄。</p><div className="flex gap-3"><button onClick={() => setPendingData(null)} className="flex-1 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-medium">取消</button><button onClick={confirmImport} className="flex-1 py-2 bg-emerald-600 text-white rounded-lg font-medium">確認覆蓋</button></div></div></div>)}<section className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 space-y-4"><div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-4"><h3 className="font-bold text-slate-700 dark:text-slate-300">外觀設定</h3><button onClick={() => setDarkMode(!darkMode)} className={`p-2 rounded-lg transition-colors flex items-center gap-2 ${darkMode ? 'bg-slate-700 text-yellow-400' : 'bg-slate-100 text-slate-600'}`}>{darkMode ? <><Moon size={18} /> 深色</> : <><Sun size={18} /> 淺色</>}</button></div><h3 className="font-bold text-slate-700 dark:text-slate-300 border-b border-slate-100 dark:border-slate-700 pb-2">資料管理</h3><div className="grid grid-cols-1 gap-3"><button onClick={handleExport} className="flex items-center justify-center gap-2 w-full py-3 bg-slate-800 dark:bg-slate-700 text-white rounded-lg hover:bg-slate-700 dark:hover:bg-slate-600 transition-colors"><Download size={18} /> 匯出備份 (JSON)</button><button onClick={() => fileInputRef.current.click()} className="flex items-center justify-center gap-2 w-full py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"><Upload size={18} /> 匯入備份</button><input type="file" ref={fileInputRef} onChange={handleImportFile} accept=".json" className="hidden" /></div>{msg && <div className="text-center text-sm font-bold text-emerald-600 bg-emerald-50 py-2 rounded">{msg}</div>}</section><section className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 space-y-4"><h3 className="font-bold text-slate-700 dark:text-slate-300 border-b border-slate-100 dark:border-slate-700 pb-2">危險區域</h3><button onClick={resetAll} className="flex items-center justify-center gap-2 w-full py-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-800/50 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"><Trash2 size={18} /> 重置所有資料</button></section></div> );
+           return ( <div className="pb-20 space-y-6"><h2 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2 safe-pt"><Icon name="Settings" className="text-slate-600" /> 設定與備份</h2>{pendingData && (<div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4 animate-in fade-in duration-200"><div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-sm w-full shadow-2xl"><h3 className="font-bold text-lg text-slate-800 dark:text-white mb-2 flex items-center gap-2"><Icon name="AlertCircle" className="text-amber-500" /> 確認還原？</h3><p className="text-slate-600 dark:text-slate-300 text-sm mb-4">這將會覆蓋您目前的有資料。<br/>包含裝備、計畫與所有山岳記錄。</p><div className="flex gap-3"><button onClick={() => setPendingData(null)} className="flex-1 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-medium">取消</button><button onClick={confirmImport} className="flex-1 py-2 bg-emerald-600 text-white rounded-lg font-medium">確認覆蓋</button></div></div></div>)}<section className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 space-y-4"><div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-4"><h3 className="font-bold text-slate-700 dark:text-slate-300">外觀設定</h3><button onClick={() => setDarkMode(!darkMode)} className={`p-2 rounded-lg transition-colors flex items-center gap-2 ${darkMode ? 'bg-slate-700 text-yellow-400' : 'bg-slate-100 text-slate-600'}`}>{darkMode ? <><Icon name="Moon" size={18} /> 深色</> : <><Icon name="Sun" size={18} /> 淺色</>}</button></div><h3 className="font-bold text-slate-700 dark:text-slate-300 border-b border-slate-100 dark:border-slate-700 pb-2">資料管理</h3><div className="grid grid-cols-1 gap-3"><button onClick={handleExport} className="flex items-center justify-center gap-2 w-full py-3 bg-slate-800 dark:bg-slate-700 text-white rounded-lg hover:bg-slate-700 dark:hover:bg-slate-600 transition-colors"><Icon name="Download" size={18} /> 匯出備份 (JSON)</button><button onClick={() => fileInputRef.current.click()} className="flex items-center justify-center gap-2 w-full py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"><Icon name="Upload" size={18} /> 匯入備份</button><input type="file" ref={fileInputRef} onChange={handleImportFile} accept=".json" className="hidden" /></div>{msg && <div className="text-center text-sm font-bold text-emerald-600 bg-emerald-50 py-2 rounded">{msg}</div>}</section><section className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 space-y-4"><h3 className="font-bold text-slate-700 dark:text-slate-300 border-b border-slate-100 dark:border-slate-700 pb-2">危險區域</h3><button onClick={resetAll} className="flex items-center justify-center gap-2 w-full py-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-800/50 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"><Icon name="Trash2" size={18} /> 重置所有資料</button></section></div> );
        };
 
        const App = () => {
@@ -604,6 +573,8 @@
            const [baiyueLog, setBaiyueLog] = useState(() => JSON.parse(localStorage.getItem('hiking-baiyue') || '{}'));
            const [xiaoBaiyueLog, setXiaoBaiyueLog] = useState(() => JSON.parse(localStorage.getItem('hiking-xiaobaiyue') || '{}'));
            const [darkMode, setDarkMode] = useState(() => JSON.parse(localStorage.getItem('hiking-darkmode') || 'false'));
+           
+           // Confirm Modal State
            const [confirmState, setConfirmState] = useState({ isOpen: false, title: '', message: '', onConfirm: () => {} });
            const confirm = (title, message, onConfirm) => setConfirmState({ isOpen: true, title, message, onConfirm });
 
@@ -633,10 +604,10 @@
                        </main>
                        <nav className="shrink-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-6 safe-pb pt-2 z-50">
                            <div className="max-w-md mx-auto flex justify-between items-center h-[60px]">
-                               <NavBtn active={currentView === VIEWS.HOME || currentView === VIEWS.SETTINGS} onClick={() => setCurrentView(VIEWS.HOME)} icon={<Home size={24} />} label="主頁" />
-                               <NavBtn active={currentView === VIEWS.RECORDS} onClick={() => setCurrentView(VIEWS.RECORDS)} icon={<Map size={24} />} label="記錄" />
-                               <NavBtn active={currentView === VIEWS.INVENTORY} onClick={() => setCurrentView(VIEWS.INVENTORY)} icon={<Backpack size={24} />} label="裝備庫" />
-                               <NavBtn active={currentView === VIEWS.PLANS} onClick={() => setCurrentView(VIEWS.PLANS)} icon={<ClipboardList size={24} />} label="計畫" />
+                               <NavBtn active={currentView === VIEWS.HOME || currentView === VIEWS.SETTINGS} onClick={() => setCurrentView(VIEWS.HOME)} icon="Home" label="主頁" />
+                               <NavBtn active={currentView === VIEWS.RECORDS} onClick={() => setCurrentView(VIEWS.RECORDS)} icon="Map" label="記錄" />
+                               <NavBtn active={currentView === VIEWS.INVENTORY} onClick={() => setCurrentView(VIEWS.INVENTORY)} icon="Backpack" label="裝備庫" />
+                               <NavBtn active={currentView === VIEWS.PLANS} onClick={() => setCurrentView(VIEWS.PLANS)} icon="ClipboardList" label="計畫" />
                            </div>
                        </nav>
                        <ConfirmModal isOpen={confirmState.isOpen} onClose={() => setConfirmState({...confirmState, isOpen: false})} title={confirmState.title} message={confirmState.message} onConfirm={confirmState.onConfirm} />
@@ -646,7 +617,7 @@
        };
 
        const NavBtn = ({ active, onClick, icon, label }) => (
-           <button onClick={onClick} className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors ${active ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}>{icon}<span className="text-[10px] font-medium">{label}</span></button>
+           <button onClick={onClick} className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors ${active ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}><Icon name={icon} size={24} /><span className="text-[10px] font-medium">{label}</span></button>
        );
 
        const root = ReactDOM.createRoot(document.getElementById('root'));

@@ -9,25 +9,33 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="GearTracker">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3026/3026490.png">
+    
     <title>GearTracker 登山裝備管理</title>
     
-    <!-- 1. Tailwind CSS -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
-            theme: { extend: { colors: { slate: { 850: '#1e293b', 950: '#020617' }, stone: { 50: '#fafaf9', 100: '#f5f5f4', 200: '#e7e5e4', 800: '#292524' } } } }
+            theme: {
+                extend: {
+                    colors: {
+                        slate: { 850: '#1e293b', 950: '#020617' },
+                        stone: { 50: '#fafaf9', 100: '#f5f5f4', 200: '#e7e5e4', 800: '#292524' }
+                    }
+                }
+            }
         }
     </script>
     
-    <!-- 2. React Core (Production UMD) -->
+    <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     
-    <!-- 3. Babel -->
+    <!-- Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
-    <!-- 4. Screenshot Tool -->
+    <!-- Screenshot Tool -->
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 
     <style>
@@ -36,9 +44,16 @@
         input, select, textarea { font-size: 16px !important; }
         .safe-pb { padding-bottom: env(safe-area-inset-bottom); }
         .safe-pt { padding-top: max(env(safe-area-inset-top), 16px); }
-        .modal-enter { animation: modal-in 0.2s ease-out forwards; }
-        @keyframes modal-in { from { opacity: 0; transform: scale(0.98) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-        .modal-scroll { -webkit-overflow-scrolling: touch; }
+        @keyframes modal-in {
+            from { opacity: 0; transform: scale(0.95) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .animate-modal { animation: modal-in 0.2s ease-out forwards; }
+        /* 強制 Modal 結構 */
+        .modal-layout { display: flex; flex-direction: column; max-height: 85vh; }
+        .modal-header { flex-shrink: 0; }
+        .modal-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; min-height: 0; }
+        .modal-footer { flex-shrink: 0; padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 font-sans overflow-hidden select-none">
@@ -50,10 +65,11 @@
             const root = document.getElementById('root');
             if (!root.hasChildNodes()) {
                 root.innerHTML = `
-                    <div style="display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;padding:20px;text-align:center;font-family:-apple-system,sans-serif;">
-                        <h2 style="font-size:1.5rem;font-weight:800;color:#ef4444;margin-bottom:10px;">⚠️ 啟動失敗</h2>
-                        <p style="color:#4b5563;margin-bottom:20px;">${message}</p>
-                        <button onclick="location.reload()" style="background:#10b981;color:white;border:none;padding:12px 24px;border-radius:99px;font-weight:bold;">重新整理</button>
+                    <div style="padding: 40px 20px; color: #ef4444; font-family: sans-serif; text-align: center; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                        <h3 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 10px;">⚠️ 啟動失敗</h3>
+                        <p style="font-size: 0.9rem; color: #374151; margin-bottom: 20px;">${message}</p>
+                        <button onclick="localStorage.clear(); location.reload()" style="background: #10b981; color: white; border: none; padding: 12px 24px; border-radius: 99px; font-weight: bold; margin-bottom: 12px;">重置資料並重整</button>
+                        <small style="color: #6b7280; font-size: 0.75rem;">若問題持續，請嘗試清除瀏覽器快取</small>
                     </div>
                 `;
             }
@@ -64,7 +80,7 @@
     <script type="text/babel">
         const { useState, useEffect, useRef, useMemo } = React;
 
-        // --- 1. ICON SYSTEM (Pure String Paths for Performance) ---
+        // --- 1. ICON SYSTEM ---
         const ICONS = {
             Plus: "M5 12h14M12 5v14",
             Trash2: "M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6",
@@ -230,7 +246,7 @@
             return (
                 <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-                    <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-t-2xl sm:rounded-2xl shadow-xl z-10 p-5 animate-modal flex flex-col max-h-[85dvh] border border-slate-200 dark:border-slate-700">
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-t-2xl sm:rounded-2xl shadow-xl z-10 p-5 animate-modal flex flex-col max-h-[85dvh] border border-slate-200 dark:border-slate-700 relative">
                         <div className="flex justify-between items-center mb-4 shrink-0">
                             <h3 className="font-bold text-lg text-slate-800 dark:text-white flex items-center gap-2"><Icon name="PieChart" size={20}/> 庫存統計</h3>
                             <button onClick={onClose}><Icon name="X" size={20} className="text-slate-400" /></button>
@@ -254,10 +270,8 @@
         const ShareOverlay = ({ plan, inventory, onClose }) => {
             const cardRef = useRef(null);
             const [downloadStatus, setDownloadStatus] = useState('idle');
-            useEffect(() => { if (!window.html2canvas) { const script = document.createElement('script'); script.src = 'https://html2canvas.hertzen.com/dist/html2canvas.min.js'; script.async = true; document.body.appendChild(script); } }, []);
             const handleDownload = async () => { if (!window.html2canvas || !cardRef.current) return; setDownloadStatus('processing'); try { await new Promise(resolve => setTimeout(resolve, 500)); const canvas = await window.html2canvas(cardRef.current, { useCORS: true, scale: 2, backgroundColor: '#fafaf9', logging: false }); const link = document.createElement('a'); link.download = `GearTracker-${plan.name.replace(/\s+/g, '_')}.jpg`; link.href = canvas.toDataURL('image/jpeg', 0.9); link.click(); setDownloadStatus('success'); setTimeout(() => setDownloadStatus('idle'), 2000); } catch (err) { setDownloadStatus('error'); } };
-            const items = plan.items || [];
-            const selectedItems = inventory.filter(item => items.includes(item.id));
+            const selectedItems = inventory.filter(item => plan.items.includes(item.id));
             const baseWeight = selectedItems.filter(i => !i.isWorn && !i.isConsumable).reduce((sum, i) => sum + Number(i.weight), 0);
             const consumableWeight = selectedItems.filter(i => i.isConsumable).reduce((sum, i) => sum + Number(i.weight), 0);
             const clothingItems = selectedItems.filter(i => i.category === 'clothing');
@@ -274,19 +288,8 @@
                         <div ref={cardRef} className="bg-stone-50 text-stone-800 w-full max-w-2xl rounded-none shadow-xl border border-stone-200 relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none"><Icon name="Mountain" size={300} /></div>
                             <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-emerald-50/50 to-transparent pointer-events-none"></div>
-                            <div className="bg-white/50 p-8 border-b border-stone-200 flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative z-10">
-                                <div>
-                                    <div className="flex items-center gap-2 mb-2"><span className="text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-700 tracking-widest uppercase">Gear Tracker</span></div>
-                                    <h2 className="text-3xl font-bold text-stone-900 tracking-tight">{plan.name}</h2>
-                                    <div className="flex items-center gap-3 mt-2 text-xs text-stone-500 font-mono"><span>{new Date().toISOString().split('T')[0]}</span><span>•</span><span>{selectedItems.length} Items</span></div>
-                                </div>
-                                <div className="text-left md:text-right">
-                                    <div className="text-[10px] text-stone-400 uppercase tracking-widest font-bold mb-1">Base Weight</div>
-                                    <div className="text-4xl font-light font-mono text-stone-800">{(baseWeight / 1000).toFixed(2)}<span className="text-lg text-stone-400 ml-1 font-normal">kg</span></div>
-                                    <div className="text-[10px] text-stone-400 mt-1 font-mono">Total: {((baseWeight+consumableWeight)/1000).toFixed(2)} kg</div>
-                                </div>
-                            </div>
-                            <div className="p-8 relative z-10"><div className="flex flex-col gap-10"><div><h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest flex items-center gap-2 border-b border-stone-200 pb-2 mb-6"><Icon name="User" size={14} /> Wearing System</h3><div className="grid grid-cols-3 gap-4"><div className="col-start-2"><ItemSlot item={findCloth('hat')} label="HEAD" placeholderIcon={<Icon name="User" size={20} />} /></div><ItemSlot item={findCloth('mid_layer')} label="MID" placeholderIcon={<Icon name="Shirt" size={20} />} /><ItemSlot item={findCloth('base_layer')} label="BASE" placeholderIcon={<Icon name="Shirt" size={20} />} /><ItemSlot item={findCloth('hard_shell_jacket')} label="SHELL" placeholderIcon={<Icon name="Shirt" size={20} />} /><ItemSlot item={findCloth('gloves')} label="GLOVES" placeholderIcon={<Icon name="HelpCircle" size={20} />} /><ItemSlot item={findCloth('soft_shell_pants')} label="PANTS" placeholderIcon={<Icon name="User" size={20} />} /><ItemSlot item={findCloth('hard_shell_pants')} label="RAIN" placeholderIcon={<Icon name="User" size={20} />} /><ItemSlot item={findCloth('socks')} label="SOCKS" placeholderIcon={<Icon name="HelpCircle" size={20} />} /><ItemSlot item={findCloth('shoes')} label="BOOTS" placeholderIcon={<Icon name="User" size={20} />} /><ItemSlot item={findCloth('other')} label="ACC" placeholderIcon={<Icon name="HelpCircle" size={20} />} /></div></div><div><h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest flex items-center gap-2 border-b border-stone-200 pb-2 mb-6"><Icon name="Backpack" size={14} /> Backpack Inventory</h3><div className="space-y-6">{otherItemsByCat.map(group => (<div key={group.id}><div className="flex items-center gap-3 mb-3"><span className="text-emerald-700 bg-emerald-50 p-1 rounded-full"><Icon name={group.icon} size={14}/></span><span className="text-[11px] font-bold uppercase text-stone-600 tracking-wider">{group.name}</span><div className="h-px bg-stone-100 flex-1"></div></div><div className="grid grid-cols-2 sm:grid-cols-3 gap-3">{group.items.map(item => (<div key={item.id} className={`bg-white rounded-lg border border-stone-100 p-2 flex gap-3 items-center ${item.isConsumable ? 'border-l-2 border-l-blue-300' : ''}`}><div className="w-10 h-10 shrink-0 bg-stone-50 rounded-md overflow-hidden flex items-center justify-center border border-stone-100">{item.image ? <img src={item.image} alt="" className="w-full h-full object-cover" /> : <div className="text-stone-300"><Icon name={group.icon} size={16}/></div>}</div><div className="min-w-0 flex-1"><p className="text-[11px] text-stone-800 truncate font-medium">{item.name}</p><div className="flex justify-between items-center mt-0.5"><p className="text-[9px] text-stone-400 truncate max-w-[60px]">{item.brand}</p><p className="text-[9px] text-emerald-600 font-mono">{item.weight}g</p></div></div></div>))}</div></div>))}</div></div></div></div>
+                            <div className="bg-white/50 p-8 border-b border-stone-200 flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative z-10"><div><div className="flex items-center gap-2 mb-2"><span className="text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-700 tracking-widest uppercase">Gear Tracker</span></div><h2 className="text-3xl font-bold text-stone-900 tracking-tight">{plan.name}</h2><div className="flex items-center gap-3 mt-2 text-xs text-stone-500 font-mono"><span>{new Date().toISOString().split('T')[0]}</span><span>•</span><span>{selectedItems.length} Items</span></div></div><div className="text-left md:text-right"><div className="text-[10px] text-stone-400 uppercase tracking-widest font-bold mb-1">Base Weight</div><div className="text-4xl font-light font-mono text-stone-800">{(baseWeight / 1000).toFixed(2)}<span className="text-lg text-stone-400 ml-1 font-normal">kg</span></div><div className="text-[10px] text-stone-400 mt-1 font-mono">Total: {((baseWeight+consumableWeight)/1000).toFixed(2)} kg</div></div></div>
+                            <div className="p-8 relative z-10"><div className="flex flex-col gap-10"><div><h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest flex items-center gap-2 border-b border-stone-200 pb-2 mb-6"><Icon name="User" size={14} /> Wearing System</h3><div className="grid grid-cols-3 gap-4"><ItemSlot item={findCloth('gloves')} label="GLOVES" placeholderIcon={<Icon name="HelpCircle" size={20} />} /><ItemSlot item={findCloth('hat')} label="HEAD" placeholderIcon={<Icon name="User" size={20} />} /><ItemSlot item={findCloth('other')} label="ACC" placeholderIcon={<Icon name="HelpCircle" size={20} />} /><ItemSlot item={findCloth('mid_layer')} label="MID" placeholderIcon={<Icon name="Shirt" size={20} />} /><ItemSlot item={findCloth('base_layer')} label="BASE" placeholderIcon={<Icon name="Shirt" size={20} />} /><ItemSlot item={findCloth('hard_shell_jacket')} label="SHELL" placeholderIcon={<Icon name="Shirt" size={20} />} /><ItemSlot item={findCloth('down_jacket')} label="DOWN" placeholderIcon={<Icon name="Shirt" size={20} />} /><ItemSlot item={findCloth('soft_shell_pants')} label="PANTS" placeholderIcon={<Icon name="User" size={20} />} /><ItemSlot item={findCloth('hard_shell_pants')} label="RAIN" placeholderIcon={<Icon name="User" size={20} />} /><ItemSlot item={findCloth('socks')} label="SOCKS" placeholderIcon={<Icon name="HelpCircle" size={20} />} /><ItemSlot item={findCloth('shoes')} label="BOOTS" placeholderIcon={<Icon name="User" size={20} />} /><div className="aspect-square"></div></div></div><div><h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest flex items-center gap-2 border-b border-stone-200 pb-2 mb-6"><Icon name="Backpack" size={14} /> Backpack Inventory</h3><div className="space-y-6">{otherItemsByCat.map(group => (<div key={group.id}><div className="flex items-center gap-3 mb-3"><span className="text-emerald-700 bg-emerald-50 p-1 rounded-full"><Icon name={group.icon} size={14}/></span><span className="text-[11px] font-bold uppercase text-stone-600 tracking-wider">{group.name}</span><div className="h-px bg-stone-100 flex-1"></div></div><div className="grid grid-cols-2 sm:grid-cols-3 gap-3">{group.items.map(item => (<div key={item.id} className={`bg-white rounded-lg border border-stone-100 p-2 flex gap-3 items-center ${item.isConsumable ? 'border-l-2 border-l-blue-300' : ''}`}><div className="w-10 h-10 shrink-0 bg-stone-50 rounded-md overflow-hidden flex items-center justify-center border border-stone-100">{item.image ? <img src={item.image} alt="" className="w-full h-full object-cover" /> : <div className="text-stone-300"><Icon name={group.icon} size={16}/></div>}</div><div className="min-w-0 flex-1"><p className="text-[11px] text-stone-800 truncate font-medium">{item.name}</p><div className="flex justify-between items-center mt-0.5"><p className="text-[9px] text-stone-400 truncate max-w-[60px]">{item.brand}</p><p className="text-[9px] text-emerald-600 font-mono">{item.weight}g</p></div></div></div>))}</div></div>))}</div></div></div></div>
                             <div className="bg-stone-100 p-4 text-center border-t border-stone-200"><div className="flex items-center justify-center gap-2 text-[10px] text-stone-400 font-mono tracking-widest uppercase"><Icon name="Mountain" size={12} /><span>Created with GearTracker</span></div></div>
                         </div>
                     </div>
@@ -297,6 +300,7 @@
         const GearFormModal = ({ isOpen, onClose, initialData, onSave, onDelete }) => {
             const [formData, setFormData] = useState(initialData);
             const fileInputRef = useRef(null);
+            
             useEffect(() => { 
                 if (isOpen) {
                     setFormData(initialData || { name: '', weight: '', category: 'backpack', brand: '', model: '', price: '', subCategory: '', image: null, isConsumable: false, isWorn: false, status: 'owned' });
@@ -312,14 +316,14 @@
             return (
                 <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center pointer-events-none">
                     <div className="absolute inset-0 bg-black/60 pointer-events-auto backdrop-blur-sm" onClick={onClose} />
-                    <div className="bg-white dark:bg-slate-900 w-full max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl pointer-events-auto flex flex-col max-h-[85dvh] animate-modal border border-slate-200 dark:border-slate-800 modal-container relative">
-                        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center shrink-0">
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl pointer-events-auto flex flex-col max-h-[85dvh] animate-modal border border-slate-200 dark:border-slate-800 modal-layout">
+                        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center shrink-0 modal-header">
                             <h3 className="font-bold text-lg text-slate-800 dark:text-white">{isEditMode ? '編輯裝備' : '新增裝備'}</h3>
                             <button onClick={onClose} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500"><Icon name="X" size={20} /></button>
                         </div>
                         
                         {/* SCROLLABLE BODY */}
-                        <div className="modal-body p-4 space-y-5 text-slate-900 dark:text-slate-100 pb-24">
+                        <div className="p-4 space-y-5 text-slate-900 dark:text-slate-100 modal-body">
                             <div className="flex justify-center"><div onClick={() => fileInputRef.current?.click()} className="w-full aspect-video rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center cursor-pointer overflow-hidden relative group">{formData.image ? <><img src={formData.image} className="w-full h-full object-cover" /><div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100"><span className="text-white text-xs font-bold bg-black/50 px-2 py-1 rounded-full">更換圖片</span></div></> : <div className="text-center text-slate-400"><Icon name="Camera" size={32} className="mx-auto mb-2 opacity-50" /><span className="text-xs font-medium">點擊上傳</span></div>}<input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" /></div></div>
                             <div className="bg-slate-50 dark:bg-slate-800 p-1 rounded-lg flex border border-slate-200 dark:border-slate-700">
                                 <button type="button" onClick={() => setFormData({...formData, status: 'owned'})} className={`flex-1 py-2 text-sm font-bold rounded-md flex items-center justify-center gap-2 transition-all ${formData.status === 'owned' ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}><Icon name="CheckCircle2" size={16} /> 已擁有</button>
@@ -344,11 +348,13 @@
                             </div>
                         </div>
 
-                        {/* ABSOLUTE FOOTER (FIXED POSITION) */}
-                        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-100 dark:border-slate-800 flex gap-3 bg-white dark:bg-slate-900 safe-pb rounded-b-2xl z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
-                            {isEditMode && (<button onClick={() => { onDelete(formData.id); onClose(); }} className="p-3 text-red-500 bg-red-50 dark:bg-red-900/20 rounded-xl"><Icon name="Trash2" size={20} /></button>)}
-                            {isEditMode && (<button onClick={() => { onSave({ ...formData, id: Date.now(), name: `${formData.name} (複製)` }); onClose(); }} className="p-3 text-slate-500 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"><Icon name="Copy" size={20} /></button>)}
-                            <button onClick={handleSubmit} className="flex-1 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 shadow-md shadow-emerald-200 active:scale-[0.98] transition-all">{isEditMode ? '儲存變更' : '新增裝備'}</button>
+                        {/* FIXED FOOTER */}
+                        <div className="modal-footer p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 safe-pb">
+                             <div className="flex gap-3">
+                                {isEditMode && (<button onClick={() => { onDelete(formData.id); onClose(); }} className="p-3 text-red-500 bg-red-50 dark:bg-red-900/20 rounded-xl"><Icon name="Trash2" size={20} /></button>)}
+                                {isEditMode && (<button onClick={() => { onSave({ ...formData, id: Date.now(), name: `${formData.name} (複製)` }); onClose(); }} className="p-3 text-slate-500 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"><Icon name="Copy" size={20} /></button>)}
+                                <button onClick={handleSubmit} className="flex-1 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 shadow-md shadow-emerald-200 active:scale-[0.98] transition-all">{isEditMode ? '儲存變更' : '新增裝備'}</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -384,13 +390,17 @@
             const [showShare, setShowShare] = useState(false);
             const [isSettingsOpen, setIsSettingsOpen] = useState(false);
             const [searchTerm, setSearchTerm] = useState('');
-            const packedItems = plan.packedItems || []; // FIX: Fallback to empty array
-            const planItems = plan.items || []; // FIX: Fallback to empty array
+            
+            // 安全讀取 items
+            const planItems = plan.items || [];
+            const packedItems = plan.packedItems || [];
+
             const selectedItems = inventory.filter(item => planItems.includes(item.id));
             const wornWeight = selectedItems.filter(i => i.isWorn).reduce((sum, i) => sum + Number(i.weight), 0);
             const consumableWeight = selectedItems.filter(i => i.isConsumable).reduce((sum, i) => sum + Number(i.weight), 0);
             const baseWeight = selectedItems.filter(i => !i.isWorn && !i.isConsumable).reduce((sum, i) => sum + Number(i.weight), 0);
             const totalPackWeight = baseWeight + consumableWeight;
+            
             const toggleSelection = (itemId) => { 
                 const isSelected = planItems.includes(itemId); 
                 const newItems = isSelected ? planItems.filter(id => id !== itemId) : [...planItems, itemId]; 
@@ -402,9 +412,12 @@
                 const newPacked = isPacked ? packedItems.filter(id => id !== itemId) : [...packedItems, itemId]; 
                 onUpdatePlan({ ...plan, packedItems: newPacked }); 
             };
+            
             const displayItems = mode === 'edit' ? inventory.filter(i => (i.name + (i.brand||'') + (i.model||'')).toLowerCase().includes(searchTerm.toLowerCase())) : selectedItems;
             const itemsByCategory = EDIT_CATEGORIES.map(cat => ({ ...cat, items: displayItems.filter(item => item.category === cat.id) })).filter(group => group.items.length > 0);
+            
             if (showShare) return <ShareOverlay plan={plan} inventory={inventory} onClose={() => setShowShare(false)} />;
+            
             return (
                 <div className="pb-20 bg-slate-50 dark:bg-slate-950 min-h-screen">
                     <div className="sticky top-0 z-20 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm safe-pt"><div className="p-3 flex items-center justify-between"><div className="flex items-center gap-2"><button onClick={onBack} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500 dark:text-slate-400"><Icon name="ArrowLeft" size={20} /></button><div><h2 className="font-bold text-slate-800 dark:text-white text-base flex items-center gap-2">{plan.name} <button onClick={() => setIsSettingsOpen(true)}><Icon name="Settings" size={14} className="text-slate-400" /></button></h2><div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 font-mono">{mode === 'view' ? <span>已打包: {packedItems.length}/{selectedItems.length}</span> : <span>已選: {selectedItems.length} 項</span>}</div></div></div><div className="flex gap-2">{mode === 'view' && <button onClick={() => setShowShare(true)} className="p-2 text-slate-500 dark:text-slate-400 hover:text-emerald-600"><Icon name="Share2" size={20} /></button>}<button onClick={() => setMode(mode === 'view' ? 'edit' : 'view')} className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${mode === 'edit' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}>{mode === 'edit' ? <Icon name="CheckCircle2" size={16} /> : <Icon name="Edit3" size={16} />}{mode === 'edit' ? '完成' : '編輯'}</button></div></div><div className="px-4 py-3 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800"><div className="flex justify-between items-end mb-2"><div className="text-xs text-slate-500 dark:text-slate-400"><span className="font-bold text-emerald-600 dark:text-emerald-400">基礎: {(baseWeight / 1000).toFixed(2)}kg</span><span className="mx-2 opacity-30">|</span><span>背負: {(totalPackWeight / 1000).toFixed(2)}kg</span></div><div className="text-[10px] text-slate-400">穿著: {(wornWeight/1000).toFixed(1)}kg</div></div><StatBar base={baseWeight} consumable={consumableWeight} worn={wornWeight} /></div>{mode === 'edit' && (<div className="p-2 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800"><div className="relative"><Icon name="Search" className="absolute left-3 top-2.5 text-slate-400" size={16} /><input type="text" placeholder="搜尋裝備加入清單..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-9 pr-3 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none dark:text-white" /></div></div>)}</div>{plan.notes && mode === 'view' && <div className="mx-4 mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900/50 rounded-lg text-sm text-yellow-800 dark:text-yellow-200 flex gap-2"><Icon name="FileText" size={16} className="shrink-0 mt-0.5" /><p className="whitespace-pre-wrap">{plan.notes}</p></div>}<div className="p-4 space-y-4">{itemsByCategory.map(group => (<div key={group.id} className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden"><div className="px-4 py-2 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700 flex items-center gap-2 font-medium text-slate-700 dark:text-slate-300 text-sm"><Icon name={group.icon} size={16} />{group.name}</div><div className="divide-y divide-slate-100 dark:divide-slate-700">{group.items.map(item => { const isSelected = planItems.includes(item.id); const isPacked = packedItems.includes(item.id); const handleClick = () => { if (mode === 'edit') toggleSelection(item.id); else togglePacked(item.id); }; let active = false; if (mode === 'edit') active = isSelected; if (mode === 'view') active = isPacked; return (<div key={item.id} onClick={handleClick} className={`p-3 flex items-center justify-between cursor-pointer transition-all ${mode === 'view' && isPacked ? 'bg-slate-50 dark:bg-slate-900 opacity-60 grayscale' : ''} ${mode === 'edit' && isSelected ? 'bg-emerald-50/50 dark:bg-emerald-900/20' : ''} ${item.status === 'wishlist' ? 'border-l-4 border-l-amber-400' : ''}`}><div className="flex items-center gap-3 overflow-hidden flex-1"><div className={`transition-colors shrink-0 ${active ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-300 dark:text-slate-600'}`}>{mode === 'edit' ? (active ? <Icon name="CheckCircle2" size={22} className="fill-emerald-100 dark:fill-emerald-900" /> : <Icon name="Circle" size={22} />) : (active ? <Icon name="CheckSquare" size={22} className="fill-emerald-100 dark:fill-emerald-900" /> : <Icon name="Square" size={22} />)}</div>{item.image && <img src={item.image} className="w-12 h-9 rounded object-cover border border-slate-200 dark:border-slate-600" />}<div className="min-w-0 flex-1"><div className="flex items-center gap-2"><span className={`block truncate transition-all ${mode === 'view' && isPacked ? 'text-slate-400 line-through decoration-slate-400' : 'text-slate-900 dark:text-slate-100 font-medium'}`}>{item.name}</span>{item.status==='wishlist' && <span className="text-[9px] text-amber-500 border border-amber-200 bg-amber-50 px-1 rounded">願望</span>}</div><div className="flex items-center gap-2 mt-0.5">{item.isConsumable && <span className="bg-blue-100 text-blue-700 text-[9px] px-1.5 rounded">消耗品</span>}{item.isWorn && <span className="bg-amber-100 text-amber-700 text-[9px] px-1.5 rounded">穿著</span>}<span className="text-[10px] text-slate-400 block truncate">{[item.brand, item.model].filter(Boolean).join(' ')}</span></div></div></div><span className="text-xs font-mono text-slate-400 shrink-0 ml-2">{item.weight}g</span></div>); })}</div></div>))}{itemsByCategory.length === 0 && <div className="text-center py-10 text-slate-400"><p>沒有項目</p></div>}</div><PlanSettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} plan={plan} onSave={onUpdatePlan} /></div>
@@ -426,81 +439,16 @@
             const [searchTerm, setSearchTerm] = useState('');
             const [selectedCategory, setSelectedCategory] = useState('all');
             const [sortBy, setSortBy] = useState('default');
-            
-            const handleSaveItem = (itemData) => {
-                if (itemData.id && items.some(i => i.id === itemData.id)) setItems(items.map(i => i.id === itemData.id ? itemData : i));
-                else setItems([...items, { ...itemData, id: Date.now() }]);
-            };
+            const handleSaveItem = (itemData) => { if (itemData.id && items.some(i => i.id === itemData.id)) setItems(items.map(i => i.id === itemData.id ? itemData : i)); else setItems([...items, { ...itemData, id: Date.now() }]); };
             const handleDeleteItem = (id) => confirm('刪除裝備', '確定要刪除此裝備嗎？', () => setItems(items.filter(i => i.id !== id)));
             const openEditModal = (item) => { setEditingItem(item); setIsModalOpen(true); };
             const ownedItems = items.filter(i => i.status !== 'wishlist');
             const totalWeight = ownedItems.reduce((sum, item) => sum + Number(item.weight), 0);
-            const filteredItems = items.filter(item => {
-                const matchesSearch = (item.name + (item.brand||'') + (item.model||'')).toLowerCase().includes(searchTerm.toLowerCase());
-                const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
-                return matchesSearch && matchesCategory;
-            }).sort((a, b) => {
-                if (sortBy === 'weight_desc') return Number(b.weight) - Number(a.weight);
-                if (sortBy === 'weight_asc') return Number(a.weight) - Number(b.weight);
-                if (sortBy === 'price_desc') return Number(b.price || 0) - Number(a.price || 0);
-                return b.id - a.id;
-            });
-
+            const filteredItems = items.filter(item => { const matchesSearch = (item.name + (item.brand||'') + (item.model||'')).toLowerCase().includes(searchTerm.toLowerCase()); const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory; return matchesSearch && matchesCategory; }).sort((a, b) => { if (sortBy === 'weight_desc') return Number(b.weight) - Number(a.weight); if (sortBy === 'weight_asc') return Number(a.weight) - Number(b.weight); if (sortBy === 'price_desc') return Number(b.price || 0) - Number(a.price || 0); return b.id - a.id; });
             return (
                 <div className="space-y-6 pb-24">
-                    <header className="flex flex-col gap-4 mb-2 safe-pt">
-                        <div className="flex justify-between items-start">
-                            <h2 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2"><Icon name="Backpack" className="text-emerald-600" /> 裝備庫</h2>
-                            <div className="text-right">
-                                <div className="text-emerald-800 dark:text-emerald-400 text-xs font-mono font-bold bg-emerald-100 dark:bg-emerald-900/30 px-2 py-1 rounded">總重: {(totalWeight / 1000).toFixed(2)} kg</div>
-                                <div className="text-[10px] text-slate-400 mt-1 cursor-pointer hover:text-emerald-500 flex items-center justify-end gap-1" onClick={() => setIsAnalyticsOpen(true)}><Icon name="BarChart2" size={10} /> 統計圖表</div>
-                            </div>
-                        </div>
-                        <div className="space-y-3">
-                            <div className="flex gap-2">
-                                <div className="relative flex-1">
-                                    <Icon name="Search" className="absolute left-3 top-2.5 text-slate-400" size={18} />
-                                    <input type="text" placeholder="搜尋..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-base dark:text-white" />
-                                    {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-3 top-2.5 text-slate-400"><Icon name="XCircle" size={18} /></button>}
-                                </div>
-                                <div className="relative">
-                                    <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 py-2 pl-3 pr-8 rounded-lg focus:outline-none text-sm font-medium h-full">
-                                        <option value="default">新到舊</option><option value="weight_desc">重量↓</option><option value="weight_asc">重量↑</option><option value="price_desc">價格↓</option>
-                                    </select>
-                                    <Icon name="ArrowUpDown" className="absolute right-2 top-2.5 text-slate-400 pointer-events-none" size={14} />
-                                </div>
-                            </div>
-                            <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-                                {CATEGORIES.map(cat => (
-                                    <button key={cat.id} onClick={() => setSelectedCategory(cat.id)} className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border ${selectedCategory === cat.id ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'}`}>
-                                        <Icon name={cat.icon} />{cat.name}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </header>
-                    <section className="space-y-3">
-                        {filteredItems.map((item) => (
-                            <div key={item.id} onClick={() => openEditModal(item)} className={`bg-white dark:bg-slate-800 p-3 rounded-xl border flex items-center justify-between group active:scale-[0.99] transition-all cursor-pointer shadow-sm ${item.status === 'wishlist' ? 'border-dashed border-amber-300 dark:border-amber-700/50 bg-amber-50/30 dark:bg-amber-900/10' : 'border-slate-100 dark:border-slate-700'}`}>
-                                <div className="flex items-center gap-4 overflow-hidden flex-1">
-                                    <div className="shrink-0 w-14 h-14 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center overflow-hidden border border-slate-200 dark:border-slate-600 relative">
-                                        {item.image ? <img src={item.image} className="w-full h-full object-cover" /> : <div className="text-slate-400 dark:text-slate-500">{CATEGORIES.find(c=>c.id===item.category)?.icon ? <Icon name={CATEGORIES.find(c=>c.id===item.category).icon} /> : null}</div>}
-                                        {item.status === 'wishlist' && <div className="absolute top-0 right-0 bg-amber-400 text-white p-0.5 rounded-bl-md"><Icon name="Gift" size={10} /></div>}
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                        <div className="flex items-center gap-2 mb-0.5"><h3 className={`font-bold truncate ${item.status === 'wishlist' ? 'text-slate-600 dark:text-slate-400' : 'text-slate-800 dark:text-white'}`}>{item.name}</h3>{item.isConsumable && <Icon name="Droplets" size={12} className="text-blue-500" />}{item.isWorn && <Icon name="Footprints" size={12} className="text-amber-500" />}</div>
-                                        <div className="flex flex-wrap items-center gap-x-2 text-xs text-slate-500 dark:text-slate-400">{(item.brand || item.model) && <span className="bg-slate-100 dark:bg-slate-700 px-1.5 rounded truncate max-w-[120px]">{[item.brand, item.model].filter(Boolean).join(' ')}</span>}</div>
-                                    </div>
-                                </div>
-                                <div className="flex flex-col items-end gap-1 shrink-0 ml-2">
-                                    <span className={`font-mono font-bold text-lg ${item.status === 'wishlist' ? 'text-slate-400' : 'text-emerald-700 dark:text-emerald-400'}`}>{item.weight}<span className="text-xs font-normal text-slate-400 ml-0.5">g</span></span>
-                                    {item.price > 0 && <span className="text-xs text-slate-400 font-mono">${Number(item.price).toLocaleString()}</span>}
-                                </div>
-                            </div>
-                        ))}
-                        {items.length > 0 && filteredItems.length === 0 && <div className="p-8 text-center text-slate-400 text-sm">沒有符合搜尋的裝備</div>}
-                        {items.length === 0 && <div className="p-10 text-center text-slate-400 flex flex-col items-center"><Icon name="ImageIcon" className="h-12 w-12 mb-3 opacity-20" /><p className="mb-4">目前沒有裝備</p></div>}
-                    </section>
+                    <header className="flex flex-col gap-4 mb-2 safe-pt"><div className="flex justify-between items-start"><h2 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2"><Icon name="Backpack" className="text-emerald-600" /> 裝備庫</h2><div className="text-right"><div className="text-emerald-800 dark:text-emerald-400 text-xs font-mono font-bold bg-emerald-100 dark:bg-emerald-900/30 px-2 py-1 rounded">總重: {(totalWeight / 1000).toFixed(2)} kg</div><div className="text-[10px] text-slate-400 mt-1 cursor-pointer hover:text-emerald-500 flex items-center justify-end gap-1" onClick={() => setIsAnalyticsOpen(true)}><Icon name="BarChart2" size={10} /> 統計圖表</div></div></div><div className="space-y-3"><div className="flex gap-2"><div className="relative flex-1"><Icon name="Search" className="absolute left-3 top-2.5 text-slate-400" size={18} /><input type="text" placeholder="搜尋..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-base dark:text-white" />{searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-3 top-2.5 text-slate-400"><Icon name="XCircle" size={18} /></button>}</div><div className="relative"><select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 py-2 pl-3 pr-8 rounded-lg focus:outline-none text-sm font-medium h-full"><option value="default">新到舊</option><option value="weight_desc">重量↓</option><option value="weight_asc">重量↑</option><option value="price_desc">價格↓</option></select><Icon name="ArrowUpDown" className="absolute right-2 top-2.5 text-slate-400 pointer-events-none" size={14} /></div></div><div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">{CATEGORIES.map(cat => (<button key={cat.id} onClick={() => setSelectedCategory(cat.id)} className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border ${selectedCategory === cat.id ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'}`}><Icon name={cat.icon} />{cat.name}</button>))}</div></div></header>
+                    <section className="space-y-3">{filteredItems.map((item) => (<div key={item.id} onClick={() => openEditModal(item)} className={`bg-white dark:bg-slate-800 p-3 rounded-xl border flex items-center justify-between group active:scale-[0.99] transition-all cursor-pointer shadow-sm ${item.status === 'wishlist' ? 'border-dashed border-amber-300 dark:border-amber-700/50 bg-amber-50/30 dark:bg-amber-900/10' : 'border-slate-100 dark:border-slate-700'}`}><div className="flex items-center gap-4 overflow-hidden flex-1"><div className="shrink-0 w-14 h-14 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center overflow-hidden border border-slate-200 dark:border-slate-600 relative">{item.image ? <img src={item.image} className="w-full h-full object-cover" /> : <div className="text-slate-400 dark:text-slate-500">{CATEGORIES.find(c=>c.id===item.category)?.icon ? <Icon name={CATEGORIES.find(c=>c.id===item.category).icon} /> : null}</div>}{item.status === 'wishlist' && <div className="absolute top-0 right-0 bg-amber-400 text-white p-0.5 rounded-bl-md"><Icon name="Gift" size={10} /></div>}</div><div className="min-w-0 flex-1"><div className="flex items-center gap-2 mb-0.5"><h3 className={`font-bold truncate ${item.status === 'wishlist' ? 'text-slate-600 dark:text-slate-400' : 'text-slate-800 dark:text-white'}`}>{item.name}</h3>{item.isConsumable && <Icon name="Droplets" size={12} className="text-blue-500" />}{item.isWorn && <Icon name="Footprints" size={12} className="text-amber-500" />}</div><div className="flex flex-wrap items-center gap-x-2 text-xs text-slate-500 dark:text-slate-400">{(item.brand || item.model) && <span className="bg-slate-100 dark:bg-slate-700 px-1.5 rounded truncate max-w-[120px]">{[item.brand, item.model].filter(Boolean).join(' ')}</span>}</div></div></div><div className="flex flex-col items-end gap-1 shrink-0 ml-2"><span className={`font-mono font-bold text-lg ${item.status === 'wishlist' ? 'text-slate-400' : 'text-emerald-700 dark:text-emerald-400'}`}>{item.weight}<span className="text-xs font-normal text-slate-400 ml-0.5">g</span></span>{item.price > 0 && <span className="text-xs text-slate-400 font-mono">${Number(item.price).toLocaleString()}</span>}</div></div>))}{items.length > 0 && filteredItems.length === 0 && <div className="p-8 text-center text-slate-400 text-sm">沒有符合搜尋的裝備</div>}{items.length === 0 && <div className="p-10 text-center text-slate-400 flex flex-col items-center"><Icon name="ImageIcon" className="h-12 w-12 mb-3 opacity-20" /><p className="mb-4">目前沒有裝備</p></div>}</section>
                     <button onClick={() => { setEditingItem(null); setIsModalOpen(true); }} className="fixed bottom-24 right-6 w-14 h-14 bg-emerald-600 text-white rounded-full shadow-lg shadow-emerald-600/40 flex items-center justify-center hover:bg-emerald-500 active:scale-95 transition-all z-40"><Icon name="Plus" size={28} /></button>
                     <GearFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} initialData={editingItem} onSave={handleSaveItem} onDelete={handleDeleteItem} />
                     <AnalyticsModal isOpen={isAnalyticsOpen} onClose={() => setIsAnalyticsOpen(false)} items={items} />
@@ -520,7 +468,7 @@
                 <div className="space-y-6 pb-20">
                     <h2 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2 safe-pt"><Icon name="ClipboardList" className="text-emerald-600" /> 計畫裝備清單</h2>
                     <section className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4"><form onSubmit={handleAdd} className="flex gap-2"><input type="text" value={newPlan.name} onChange={(e) => setNewPlan({...newPlan, name: e.target.value})} placeholder="新增計畫" className="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-base dark:bg-slate-900 dark:border-slate-600 dark:text-white" required /><button type="submit" className="bg-emerald-600 text-white px-4 rounded-lg hover:bg-emerald-700"><Icon name="Plus" /></button></form></section>
-                    <div className="grid gap-3">{plans.map(plan => { const currentWeight = inventory.filter(i => plan.items.includes(i.id)).reduce((sum, i) => sum + Number(i.weight), 0); const packedCount = plan.packedItems ? plan.packedItems.length : 0; const totalCount = plan.items.length; const progress = totalCount > 0 ? (packedCount / totalCount) * 100 : 0; return (<div key={plan.id} onClick={() => setActivePlanId(plan.id)} className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 hover:border-emerald-400 transition-all cursor-pointer group active:scale-[0.98]"><div className="flex justify-between items-start"><div className="flex-1"><h3 className="font-bold text-slate-800 dark:text-white group-hover:text-emerald-500 text-lg">{plan.name}</h3><div className="flex items-center gap-3 mt-1 mb-2"><span className="text-xs bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 px-2 py-0.5 rounded-full">{totalCount} 件物品</span><span className="text-xs font-mono font-medium text-emerald-600 dark:text-emerald-400">{(currentWeight / 1000).toFixed(2)} kg</span></div><div className="w-full max-w-[200px] h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${progress}%` }}></div></div><p className="text-[10px] text-slate-400 mt-1">打包進度: {packedCount}/{totalCount}</p></div><div className="flex items-center gap-2 self-start"><button onClick={(e) => handleDuplicatePlan(e, plan)} className="text-slate-300 hover:text-emerald-500 p-2"><Icon name="Copy" size={16} /></button><button onClick={(e) => handleDeletePlan(e, plan.id)} className="text-red-300 hover:text-red-500 p-2 -mr-2"><Icon name="Trash2" size={16} /></button></div></div></div>); })}{plans.length === 0 && <div className="text-center py-10 text-slate-400"><p>還沒有計畫</p></div>}</div>
+                    <div className="grid gap-3">{plans.map(plan => { const currentWeight = inventory.filter(i => (plan.items || []).includes(i.id)).reduce((sum, i) => sum + Number(i.weight), 0); const packedCount = (plan.packedItems || []).length; const totalCount = (plan.items || []).length; const progress = totalCount > 0 ? (packedCount / totalCount) * 100 : 0; return (<div key={plan.id} onClick={() => setActivePlanId(plan.id)} className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 hover:border-emerald-400 transition-all cursor-pointer group active:scale-[0.98]"><div className="flex justify-between items-start"><div className="flex-1"><h3 className="font-bold text-slate-800 dark:text-white group-hover:text-emerald-500 text-lg">{plan.name}</h3><div className="flex items-center gap-3 mt-1 mb-2"><span className="text-xs bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 px-2 py-0.5 rounded-full">{totalCount} 件物品</span><span className="text-xs font-mono font-medium text-emerald-600 dark:text-emerald-400">{(currentWeight / 1000).toFixed(2)} kg</span></div><div className="w-full max-w-[200px] h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${progress}%` }}></div></div><p className="text-[10px] text-slate-400 mt-1">打包進度: {packedCount}/{totalCount}</p></div><div className="flex items-center gap-2 self-start"><button onClick={(e) => handleDuplicatePlan(e, plan)} className="text-slate-300 hover:text-emerald-500 p-2"><Icon name="Copy" size={16} /></button><button onClick={(e) => handleDeletePlan(e, plan.id)} className="text-red-300 hover:text-red-500 p-2 -mr-2"><Icon name="Trash2" size={16} /></button></div></div></div>); })}{plans.length === 0 && <div className="text-center py-10 text-slate-400"><p>還沒有計畫</p></div>}</div>
                 </div>
             );
         };
@@ -546,12 +494,29 @@
 
         const App = () => {
             const [currentView, setCurrentView] = useState(VIEWS.HOME);
-            const [inventory, setInventory] = useState(() => JSON.parse(localStorage.getItem('hiking-inventory') || '[]'));
-            const [plans, setPlans] = useState(() => JSON.parse(localStorage.getItem('hiking-plans') || '[]'));
-            const [records, setRecords] = useState(() => JSON.parse(localStorage.getItem('hiking-records') || '[]'));
-            const [baiyueLog, setBaiyueLog] = useState(() => JSON.parse(localStorage.getItem('hiking-baiyue') || '{}'));
-            const [xiaoBaiyueLog, setXiaoBaiyueLog] = useState(() => JSON.parse(localStorage.getItem('hiking-xiaobaiyue') || '{}'));
-            const [darkMode, setDarkMode] = useState(() => JSON.parse(localStorage.getItem('hiking-darkmode') || 'false'));
+            
+            // --- Helper: Safe JSON Parse ---
+            const safeParse = (key, fallback) => {
+                try {
+                    const stored = localStorage.getItem(key);
+                    return stored ? JSON.parse(stored) : fallback;
+                } catch (e) {
+                    console.warn(`Failed to parse ${key}, using fallback.`);
+                    return fallback;
+                }
+            };
+            
+            const [inventory, setInventory] = useState(() => safeParse('hiking-inventory', []));
+            const [plans, setPlans] = useState(() => {
+                const loaded = safeParse('hiking-plans', []);
+                // FIX: Data migration for old plans
+                return loaded.map(p => ({ ...p, items: p.items || [], packedItems: p.packedItems || [] }));
+            });
+            const [records, setRecords] = useState(() => safeParse('hiking-records', []));
+            const [baiyueLog, setBaiyueLog] = useState(() => safeParse('hiking-baiyue', {}));
+            const [xiaoBaiyueLog, setXiaoBaiyueLog] = useState(() => safeParse('hiking-xiaobaiyue', {}));
+            const [darkMode, setDarkMode] = useState(() => safeParse('hiking-darkmode', false));
+            
             const [confirmState, setConfirmState] = useState({ isOpen: false, title: '', message: '', onConfirm: () => {} });
             const confirm = (title, message, onConfirm) => setConfirmState({ isOpen: true, title, message, onConfirm });
 
@@ -563,8 +528,11 @@
             useEffect(() => { localStorage.setItem('hiking-darkmode', JSON.stringify(darkMode)); }, [darkMode]);
 
             const handleImportData = (data) => {
-                setInventory(data.inventory || []); setPlans(data.plans || []); setRecords(data.records || []);
-                setBaiyueLog(data.baiyueLog || {}); setXiaoBaiyueLog(data.xiaoBaiyueLog || {});
+                setInventory(data.inventory || []); 
+                setPlans((data.plans || []).map(p => ({ ...p, items: p.items || [], packedItems: p.packedItems || [] }))); 
+                setRecords(data.records || []);
+                setBaiyueLog(data.baiyueLog || {}); 
+                setXiaoBaiyueLog(data.xiaoBaiyueLog || {});
             };
 
             return (

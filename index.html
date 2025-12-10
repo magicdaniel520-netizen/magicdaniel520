@@ -49,7 +49,7 @@
             to { opacity: 1; transform: scale(1) translateY(0); }
         }
         .animate-modal { animation: modal-in 0.2s ease-out forwards; }
-        /* 確保 Modal 在手機上高度正確 */
+        /* V7.2 Layout Fixes */
         .modal-layout { display: flex; flex-direction: column; max-height: 85vh; overflow: hidden; }
         .modal-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 20px; }
         .modal-footer { flex-shrink: 0; position: relative; z-index: 10; }
@@ -58,6 +58,7 @@
 <body class="bg-slate-50 text-slate-900 font-sans overflow-hidden select-none">
     <div id="root"></div>
 
+    <!-- Error Handler -->
     <script>
         window.onerror = function(message, source, lineno, colno, error) {
             const root = document.getElementById('root');
@@ -202,7 +203,9 @@
         const SimplePieChart = ({ data }) => {
             const total = data.reduce((sum, item) => sum + item.value, 0);
             let cumulativeAngle = 0;
+
             if (total === 0) return <div className="flex items-center justify-center h-full text-slate-400 text-xs">無數據</div>;
+
             return (
                 <div className="relative w-48 h-48 mx-auto">
                     <svg viewBox="-1 -1 2 2" style={{ transform: 'rotate(-90deg)' }} className="w-full h-full">
@@ -237,7 +240,29 @@
                 const weight = ownedItems.filter(i => i.category === cat.id).reduce((sum, i) => sum + Number(i.weight), 0);
                 return { name: cat.name, value: weight, color: cat.color };
             }).filter(d => d.value > 0).sort((a,b) => b.value - a.value);
-            return (<div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"><div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} /><div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-t-2xl sm:rounded-2xl shadow-xl z-10 p-5 animate-modal flex flex-col max-h-[85dvh] border border-slate-200 dark:border-slate-700 relative"><div className="flex justify-between items-center mb-4 shrink-0"><h3 className="font-bold text-lg text-slate-800 dark:text-white flex items-center gap-2"><Icon name="PieChart" size={20}/> 庫存統計</h3><button onClick={onClose}><Icon name="X" size={20} className="text-slate-400" /></button></div><div className="flex-1 overflow-y-auto no-scrollbar"><div className="py-4"><SimplePieChart data={data} /></div><div className="space-y-3 mt-2">{data.map(d => (<div key={d.name} className="flex items-center justify-between text-sm"><div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full" style={{ backgroundColor: d.color }} /><span className="text-slate-700 dark:text-slate-300">{d.name}</span></div><span className="font-mono text-slate-900 dark:text-white font-medium">{(d.value/1000).toFixed(2)} kg</span></div>))}</div></div></div></div>);
+            
+            return (
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-t-2xl sm:rounded-2xl shadow-xl z-10 p-5 animate-modal flex flex-col max-h-[85dvh] border border-slate-200 dark:border-slate-700 relative">
+                        <div className="flex justify-between items-center mb-4 shrink-0">
+                            <h3 className="font-bold text-lg text-slate-800 dark:text-white flex items-center gap-2"><Icon name="PieChart" size={20}/> 庫存統計</h3>
+                            <button onClick={onClose}><Icon name="X" size={20} className="text-slate-400" /></button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto no-scrollbar">
+                            <div className="py-4"><SimplePieChart data={data} /></div>
+                            <div className="space-y-3 mt-2">
+                                {data.map(d => (
+                                    <div key={d.name} className="flex items-center justify-between text-sm">
+                                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full" style={{ backgroundColor: d.color }} /><span className="text-slate-700 dark:text-slate-300">{d.name}</span></div>
+                                        <span className="font-mono text-slate-900 dark:text-white font-medium">{(d.value/1000).toFixed(2)} kg</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
         };
 
         const ShareOverlay = ({ plan, inventory, onClose }) => {
@@ -263,7 +288,18 @@
                         <div ref={cardRef} className="bg-stone-50 text-stone-800 w-full max-w-2xl rounded-none shadow-xl border border-stone-200 relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none"><Icon name="Mountain" size={300} /></div>
                             <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-emerald-50/50 to-transparent pointer-events-none"></div>
-                            <div className="bg-white/50 p-8 border-b border-stone-200 flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative z-10"><div><div className="flex items-center gap-2 mb-2"><span className="text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-700 tracking-widest uppercase">Gear Tracker</span></div><h2 className="text-3xl font-bold text-stone-900 tracking-tight">{plan.name}</h2><div className="flex items-center gap-3 mt-2 text-xs text-stone-500 font-mono"><span>{new Date().toISOString().split('T')[0]}</span><span>•</span><span>{selectedItems.length} Items</span></div></div><div className="text-left md:text-right"><div className="text-[10px] text-stone-400 uppercase tracking-widest font-bold mb-1">Base Weight</div><div className="text-4xl font-light font-mono text-stone-800">{(baseWeight / 1000).toFixed(2)}<span className="text-lg text-stone-400 ml-1 font-normal">kg</span></div><div className="text-[10px] text-stone-400 mt-1 font-mono">Total: {((baseWeight+consumableWeight)/1000).toFixed(2)} kg</div></div></div>
+                            <div className="bg-white/50 p-8 border-b border-stone-200 flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative z-10">
+                                <div>
+                                    <div className="flex items-center gap-2 mb-2"><span className="text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-700 tracking-widest uppercase">Gear Tracker</span></div>
+                                    <h2 className="text-3xl font-bold text-stone-900 tracking-tight">{plan.name}</h2>
+                                    <div className="flex items-center gap-3 mt-2 text-xs text-stone-500 font-mono"><span>{new Date().toISOString().split('T')[0]}</span><span>•</span><span>{selectedItems.length} Items</span></div>
+                                </div>
+                                <div className="text-left md:text-right">
+                                    <div className="text-[10px] text-stone-400 uppercase tracking-widest font-bold mb-1">Base Weight</div>
+                                    <div className="text-4xl font-light font-mono text-stone-800">{(baseWeight / 1000).toFixed(2)}<span className="text-lg text-stone-400 ml-1 font-normal">kg</span></div>
+                                    <div className="text-[10px] text-stone-400 mt-1 font-mono">Total: {((baseWeight+consumableWeight)/1000).toFixed(2)} kg</div>
+                                </div>
+                            </div>
                             <div className="p-8 relative z-10"><div className="flex flex-col gap-10"><div><h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest flex items-center gap-2 border-b border-stone-200 pb-2 mb-6"><Icon name="User" size={14} /> Wearing System</h3><div className="grid grid-cols-3 gap-4"><div className="col-start-2"><ItemSlot item={findCloth('hat')} label="HEAD" placeholderIcon={<Icon name="User" size={20} />} /></div><ItemSlot item={findCloth('mid_layer')} label="MID" placeholderIcon={<Icon name="Shirt" size={20} />} /><ItemSlot item={findCloth('base_layer')} label="BASE" placeholderIcon={<Icon name="Shirt" size={20} />} /><ItemSlot item={findCloth('hard_shell_jacket')} label="SHELL" placeholderIcon={<Icon name="Shirt" size={20} />} /><ItemSlot item={findCloth('gloves')} label="GLOVES" placeholderIcon={<Icon name="HelpCircle" size={20} />} /><ItemSlot item={findCloth('soft_shell_pants')} label="PANTS" placeholderIcon={<Icon name="User" size={20} />} /><ItemSlot item={findCloth('hard_shell_pants')} label="RAIN" placeholderIcon={<Icon name="User" size={20} />} /><ItemSlot item={findCloth('socks')} label="SOCKS" placeholderIcon={<Icon name="HelpCircle" size={20} />} /><ItemSlot item={findCloth('shoes')} label="BOOTS" placeholderIcon={<Icon name="User" size={20} />} /><ItemSlot item={findCloth('other')} label="ACC" placeholderIcon={<Icon name="HelpCircle" size={20} />} /></div></div><div><h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest flex items-center gap-2 border-b border-stone-200 pb-2 mb-6"><Icon name="Backpack" size={14} /> Backpack Inventory</h3><div className="space-y-6">{otherItemsByCat.map(group => (<div key={group.id}><div className="flex items-center gap-3 mb-3"><span className="text-emerald-700 bg-emerald-50 p-1 rounded-full"><Icon name={group.icon} size={14}/></span><span className="text-[11px] font-bold uppercase text-stone-600 tracking-wider">{group.name}</span><div className="h-px bg-stone-100 flex-1"></div></div><div className="grid grid-cols-2 sm:grid-cols-3 gap-3">{group.items.map(item => (<div key={item.id} className={`bg-white rounded-lg border border-stone-100 p-2 flex gap-3 items-center ${item.isConsumable ? 'border-l-2 border-l-blue-300' : ''}`}><div className="w-10 h-10 shrink-0 bg-stone-50 rounded-md overflow-hidden flex items-center justify-center border border-stone-100">{item.image ? <img src={item.image} alt="" className="w-full h-full object-cover" /> : <div className="text-stone-300"><Icon name={group.icon} size={16}/></div>}</div><div className="min-w-0 flex-1"><p className="text-[11px] text-stone-800 truncate font-medium">{item.name}</p><div className="flex justify-between items-center mt-0.5"><p className="text-[9px] text-stone-400 truncate max-w-[60px]">{item.brand}</p><p className="text-[9px] text-emerald-600 font-mono">{item.weight}g</p></div></div></div>))}</div></div>))}</div></div></div></div>
                             <div className="bg-stone-100 p-4 text-center border-t border-stone-200"><div className="flex items-center justify-center gap-2 text-[10px] text-stone-400 font-mono tracking-widest uppercase"><Icon name="Mountain" size={12} /><span>Created with GearTracker</span></div></div>
                         </div>
@@ -275,7 +311,6 @@
         const GearFormModal = ({ isOpen, onClose, initialData, onSave, onDelete }) => {
             const [formData, setFormData] = useState(initialData);
             const fileInputRef = useRef(null);
-            
             useEffect(() => { 
                 if (isOpen) {
                     setFormData(initialData || { name: '', weight: '', category: 'backpack', brand: '', model: '', price: '', subCategory: '', image: null, isConsumable: false, isWorn: false, status: 'owned' });
@@ -292,13 +327,24 @@
                 <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center pointer-events-none">
                     <div className="absolute inset-0 bg-black/60 pointer-events-auto backdrop-blur-sm" onClick={onClose} />
                     <div className="bg-white dark:bg-slate-900 w-full max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl pointer-events-auto flex flex-col max-h-[85dvh] animate-modal border border-slate-200 dark:border-slate-800 modal-layout">
-                        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center shrink-0 modal-header">
-                            <h3 className="font-bold text-lg text-slate-800 dark:text-white">{isEditMode ? '編輯裝備' : '新增裝備'}</h3>
-                            <button onClick={onClose} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500"><Icon name="X" size={20} /></button>
+                        
+                        {/* 1. HEADER (Minimal: just close button) */}
+                        <div className="p-3 border-b border-slate-100 dark:border-slate-800 flex justify-end items-center shrink-0 modal-header">
+                            <button onClick={onClose} className="p-2 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-500"><Icon name="X" size={20} /></button>
                         </div>
                         
-                        {/* SCROLLABLE BODY */}
-                        <div className="modal-body p-4 space-y-5 text-slate-900 dark:text-slate-100">
+                        {/* 2. BODY (Scrollable) */}
+                        <div className="p-4 space-y-5 text-slate-900 dark:text-slate-100 modal-body">
+                            
+                            {/* ACTION BUTTONS (Moved to TOP for visibility) */}
+                            <div className="flex gap-3 mb-2">
+                                {isEditMode && (<button onClick={() => { onDelete(formData.id); onClose(); }} className="p-3 text-red-500 bg-red-50 dark:bg-red-900/20 rounded-xl flex-shrink-0"><Icon name="Trash2" size={20} /></button>)}
+                                {isEditMode && (<button onClick={() => { onSave({ ...formData, id: Date.now(), name: `${formData.name} (複製)` }); onClose(); }} className="p-3 text-slate-500 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl flex-shrink-0"><Icon name="Copy" size={20} /></button>)}
+                                <button onClick={handleSubmit} className="flex-1 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 shadow-md shadow-emerald-200 active:scale-[0.98] transition-all">
+                                    {isEditMode ? '儲存變更' : '新增裝備'}
+                                </button>
+                            </div>
+
                             <div className="flex justify-center"><div onClick={() => fileInputRef.current?.click()} className="w-full aspect-video rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center cursor-pointer overflow-hidden relative group">{formData.image ? <><img src={formData.image} className="w-full h-full object-cover" /><div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100"><span className="text-white text-xs font-bold bg-black/50 px-2 py-1 rounded-full">更換圖片</span></div></> : <div className="text-center text-slate-400"><Icon name="Camera" size={32} className="mx-auto mb-2 opacity-50" /><span className="text-xs font-medium">點擊上傳</span></div>}<input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" /></div></div>
                             <div className="bg-slate-50 dark:bg-slate-800 p-1 rounded-lg flex border border-slate-200 dark:border-slate-700">
                                 <button type="button" onClick={() => setFormData({...formData, status: 'owned'})} className={`flex-1 py-2 text-sm font-bold rounded-md flex items-center justify-center gap-2 transition-all ${formData.status === 'owned' ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}><Icon name="CheckCircle2" size={16} /> 已擁有</button>
@@ -317,18 +363,13 @@
                                 <div><label className="text-xs font-bold text-slate-500 mb-1 block">重量 (g) *</label><input type="number" value={formData.weight} onChange={(e) => setFormData({...formData, weight: e.target.value})} className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono" required /></div>
                                 <div><label className="text-xs font-bold text-slate-500 mb-1 block">價格 ($)</label><input type="number" value={formData.price} onChange={(e) => setFormData({...formData, price: e.target.value})} className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono" /></div>
                             </div>
-                            <div className="flex gap-4">
+                            <div className="flex gap-4 pb-8">
                                 <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 flex-1 p-2 border border-transparent rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800"><input type="checkbox" checked={formData.isConsumable} onChange={(e) => setFormData({...formData, isConsumable: e.target.checked})} className="accent-blue-500 w-4 h-4" /><Icon name="Droplets" size={16} className="text-blue-500" />消耗品</label>
                                 <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 flex-1 p-2 border border-transparent rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800"><input type="checkbox" checked={formData.isWorn} onChange={(e) => setFormData({...formData, isWorn: e.target.checked})} className="accent-amber-500 w-4 h-4" /><Icon name="Footprints" size={16} className="text-amber-500" />身上穿著</label>
                             </div>
                         </div>
 
-                        {/* FIXED FOOTER */}
-                        <div className="modal-footer p-4 border-t border-slate-100 dark:border-slate-800 flex gap-3 bg-slate-50/50 dark:bg-slate-900/50 safe-pb shrink-0">
-                            {isEditMode && (<button onClick={() => { onDelete(formData.id); onClose(); }} className="p-3 text-red-500 bg-red-50 dark:bg-red-900/20 rounded-xl flex-shrink-0"><Icon name="Trash2" size={20} /></button>)}
-                            {isEditMode && (<button onClick={() => { onSave({ ...formData, id: Date.now(), name: `${formData.name} (複製)` }); onClose(); }} className="p-3 text-slate-500 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl flex-shrink-0"><Icon name="Copy" size={20} /></button>)}
-                            <button onClick={handleSubmit} className="flex-1 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 shadow-md shadow-emerald-200 active:scale-[0.98] transition-all">{isEditMode ? '儲存變更' : '新增裝備'}</button>
-                        </div>
+                        {/* NO FOOTER - BUTTONS MOVED TO TOP */}
                     </div>
                 </div>
             );
@@ -431,8 +472,59 @@
 
             return (
                 <div className="space-y-6 pb-24">
-                    <header className="flex flex-col gap-4 mb-2 safe-pt"><div className="flex justify-between items-start"><h2 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2"><Icon name="Backpack" className="text-emerald-600" /> 裝備庫</h2><div className="text-right"><div className="text-emerald-800 dark:text-emerald-400 text-xs font-mono font-bold bg-emerald-100 dark:bg-emerald-900/30 px-2 py-1 rounded">總重: {(totalWeight / 1000).toFixed(2)} kg</div><div className="text-[10px] text-slate-400 mt-1 cursor-pointer hover:text-emerald-500 flex items-center justify-end gap-1" onClick={() => setIsAnalyticsOpen(true)}><Icon name="BarChart2" size={10} /> 統計圖表</div></div></div><div className="space-y-3"><div className="flex gap-2"><div className="relative flex-1"><Icon name="Search" className="absolute left-3 top-2.5 text-slate-400" size={18} /><input type="text" placeholder="搜尋..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-base dark:text-white" />{searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-3 top-2.5 text-slate-400"><Icon name="XCircle" size={18} /></button>}</div><div className="relative"><select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 py-2 pl-3 pr-8 rounded-lg focus:outline-none text-sm font-medium h-full"><option value="default">新到舊</option><option value="weight_desc">重量↓</option><option value="weight_asc">重量↑</option><option value="price_desc">價格↓</option></select><Icon name="ArrowUpDown" className="absolute right-2 top-2.5 text-slate-400 pointer-events-none" size={14} /></div></div><div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">{CATEGORIES.map(cat => (<button key={cat.id} onClick={() => setSelectedCategory(cat.id)} className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border ${selectedCategory === cat.id ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'}`}><Icon name={cat.icon} />{cat.name}</button>))}</div></div></header>
-                    <section className="space-y-3">{filteredItems.map((item) => (<div key={item.id} onClick={() => openEditModal(item)} className={`bg-white dark:bg-slate-800 p-3 rounded-xl border flex items-center justify-between group active:scale-[0.99] transition-all cursor-pointer shadow-sm ${item.status === 'wishlist' ? 'border-dashed border-amber-300 dark:border-amber-700/50 bg-amber-50/30 dark:bg-amber-900/10' : 'border-slate-100 dark:border-slate-700'}`}><div className="flex items-center gap-4 overflow-hidden flex-1"><div className="shrink-0 w-14 h-14 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center overflow-hidden border border-slate-200 dark:border-slate-600 relative">{item.image ? <img src={item.image} className="w-full h-full object-cover" /> : <div className="text-slate-400 dark:text-slate-500">{CATEGORIES.find(c=>c.id===item.category)?.icon ? <Icon name={CATEGORIES.find(c=>c.id===item.category).icon} /> : null}</div>}{item.status === 'wishlist' && <div className="absolute top-0 right-0 bg-amber-400 text-white p-0.5 rounded-bl-md"><Icon name="Gift" size={10} /></div>}</div><div className="min-w-0 flex-1"><div className="flex items-center gap-2 mb-0.5"><h3 className={`font-bold truncate ${item.status === 'wishlist' ? 'text-slate-600 dark:text-slate-400' : 'text-slate-800 dark:text-white'}`}>{item.name}</h3>{item.isConsumable && <Icon name="Droplets" size={12} className="text-blue-500" />}{item.isWorn && <Icon name="Footprints" size={12} className="text-amber-500" />}</div><div className="flex flex-wrap items-center gap-x-2 text-xs text-slate-500 dark:text-slate-400">{(item.brand || item.model) && <span className="bg-slate-100 dark:bg-slate-700 px-1.5 rounded truncate max-w-[120px]">{[item.brand, item.model].filter(Boolean).join(' ')}</span>}</div></div></div><div className="flex flex-col items-end gap-1 shrink-0 ml-2"><span className={`font-mono font-bold text-lg ${item.status === 'wishlist' ? 'text-slate-400' : 'text-emerald-700 dark:text-emerald-400'}`}>{item.weight}<span className="text-xs font-normal text-slate-400 ml-0.5">g</span></span>{item.price > 0 && <span className="text-xs text-slate-400 font-mono">${Number(item.price).toLocaleString()}</span>}</div></div>))}{items.length > 0 && filteredItems.length === 0 && <div className="p-8 text-center text-slate-400 text-sm">沒有符合搜尋的裝備</div>}{items.length === 0 && <div className="p-10 text-center text-slate-400 flex flex-col items-center"><Icon name="ImageIcon" className="h-12 w-12 mb-3 opacity-20" /><p className="mb-4">目前沒有裝備</p></div>}</section>
+                    <header className="flex flex-col gap-4 mb-2 safe-pt">
+                        <div className="flex justify-between items-start">
+                            <h2 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2"><Icon name="Backpack" className="text-emerald-600" /> 裝備庫</h2>
+                            <div className="text-right">
+                                <div className="text-emerald-800 dark:text-emerald-400 text-xs font-mono font-bold bg-emerald-100 dark:bg-emerald-900/30 px-2 py-1 rounded">總重: {(totalWeight / 1000).toFixed(2)} kg</div>
+                                <div className="text-[10px] text-slate-400 mt-1 cursor-pointer hover:text-emerald-500 flex items-center justify-end gap-1" onClick={() => setIsAnalyticsOpen(true)}><Icon name="BarChart2" size={10} /> 統計圖表</div>
+                            </div>
+                        </div>
+                        <div className="space-y-3">
+                            <div className="flex gap-2">
+                                <div className="relative flex-1">
+                                    <Icon name="Search" className="absolute left-3 top-2.5 text-slate-400" size={18} />
+                                    <input type="text" placeholder="搜尋..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-base dark:text-white" />
+                                    {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-3 top-2.5 text-slate-400"><Icon name="XCircle" size={18} /></button>}
+                                </div>
+                                <div className="relative">
+                                    <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 py-2 pl-3 pr-8 rounded-lg focus:outline-none text-sm font-medium h-full">
+                                        <option value="default">新到舊</option><option value="weight_desc">重量↓</option><option value="weight_asc">重量↑</option><option value="price_desc">價格↓</option>
+                                    </select>
+                                    <Icon name="ArrowUpDown" className="absolute right-2 top-2.5 text-slate-400 pointer-events-none" size={14} />
+                                </div>
+                            </div>
+                            <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                                {CATEGORIES.map(cat => (
+                                    <button key={cat.id} onClick={() => setSelectedCategory(cat.id)} className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border ${selectedCategory === cat.id ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'}`}>
+                                        <Icon name={cat.icon} />{cat.name}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </header>
+                    <section className="space-y-3">
+                        {filteredItems.map((item) => (
+                            <div key={item.id} onClick={() => openEditModal(item)} className={`bg-white dark:bg-slate-800 p-3 rounded-xl border flex items-center justify-between group active:scale-[0.99] transition-all cursor-pointer shadow-sm ${item.status === 'wishlist' ? 'border-dashed border-amber-300 dark:border-amber-700/50 bg-amber-50/30 dark:bg-amber-900/10' : 'border-slate-100 dark:border-slate-700'}`}>
+                                <div className="flex items-center gap-4 overflow-hidden flex-1">
+                                    <div className="shrink-0 w-14 h-14 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center overflow-hidden border border-slate-200 dark:border-slate-600 relative">
+                                        {item.image ? <img src={item.image} className="w-full h-full object-cover" /> : <div className="text-slate-400 dark:text-slate-500">{CATEGORIES.find(c=>c.id===item.category)?.icon ? <Icon name={CATEGORIES.find(c=>c.id===item.category).icon} /> : null}</div>}
+                                        {item.status === 'wishlist' && <div className="absolute top-0 right-0 bg-amber-400 text-white p-0.5 rounded-bl-md"><Icon name="Gift" size={10} /></div>}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-2 mb-0.5"><h3 className={`font-bold truncate ${item.status === 'wishlist' ? 'text-slate-600 dark:text-slate-400' : 'text-slate-800 dark:text-white'}`}>{item.name}</h3>{item.isConsumable && <Icon name="Droplets" size={12} className="text-blue-500" />}{item.isWorn && <Icon name="Footprints" size={12} className="text-amber-500" />}</div>
+                                        <div className="flex flex-wrap items-center gap-x-2 text-xs text-slate-500 dark:text-slate-400">{(item.brand || item.model) && <span className="bg-slate-100 dark:bg-slate-700 px-1.5 rounded truncate max-w-[120px]">{[item.brand, item.model].filter(Boolean).join(' ')}</span>}</div>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col items-end gap-1 shrink-0 ml-2">
+                                    <span className={`font-mono font-bold text-lg ${item.status === 'wishlist' ? 'text-slate-400' : 'text-emerald-700 dark:text-emerald-400'}`}>{item.weight}<span className="text-xs font-normal text-slate-400 ml-0.5">g</span></span>
+                                    {item.price > 0 && <span className="text-xs text-slate-400 font-mono">${Number(item.price).toLocaleString()}</span>}
+                                </div>
+                            </div>
+                        ))}
+                        {items.length > 0 && filteredItems.length === 0 && <div className="p-8 text-center text-slate-400 text-sm">沒有符合搜尋的裝備</div>}
+                        {items.length === 0 && <div className="p-10 text-center text-slate-400 flex flex-col items-center"><Icon name="ImageIcon" className="h-12 w-12 mb-3 opacity-20" /><p className="mb-4">目前沒有裝備</p></div>}
+                    </section>
                     <button onClick={() => { setEditingItem(null); setIsModalOpen(true); }} className="fixed bottom-24 right-6 w-14 h-14 bg-emerald-600 text-white rounded-full shadow-lg shadow-emerald-600/40 flex items-center justify-center hover:bg-emerald-500 active:scale-95 transition-all z-40"><Icon name="Plus" size={28} /></button>
                     <GearFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} initialData={editingItem} onSave={handleSaveItem} onDelete={handleDeleteItem} />
                     <AnalyticsModal isOpen={isAnalyticsOpen} onClose={() => setIsAnalyticsOpen(false)} items={items} />

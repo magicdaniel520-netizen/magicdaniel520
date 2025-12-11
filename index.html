@@ -28,7 +28,7 @@
         }
     </script>
     
-    <!-- React & ReactDOM (Production UMD) -->
+    <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     
@@ -39,20 +39,36 @@
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 
     <style>
+        /* 核心捲動修復：確保父容器高度正確傳遞 */
+        html, body, #root {
+            height: 100%;
+            width: 100%;
+            overflow: hidden; /* 防止整體頁面彈性捲動 */
+            position: fixed; /* iOS 捲動鎖定大招 */
+        }
+
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* 防止 iOS 輸入框縮放 */
         input, select, textarea { font-size: 16px !important; }
+        
+        /* iOS Safe Area */
         .safe-pb { padding-bottom: env(safe-area-inset-bottom); }
         .safe-pt { padding-top: max(env(safe-area-inset-top), 16px); }
+        
+        /* Modal 動畫 */
         @keyframes modal-in {
             from { opacity: 0; transform: scale(0.95) translateY(10px); }
             to { opacity: 1; transform: scale(1) translateY(0); }
         }
         .animate-modal { animation: modal-in 0.2s ease-out forwards; }
-        .modal-body { -webkit-overflow-scrolling: touch; }
+        
+        /* iOS 慣性捲動開啟 */
+        .ios-scroll { -webkit-overflow-scrolling: touch; }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-900 font-sans overflow-hidden select-none">
+<body class="bg-slate-50 text-slate-900 font-sans select-none">
     <div id="root"></div>
 
     <!-- Error Handler -->
@@ -64,7 +80,7 @@
                     <div style="padding: 40px 20px; color: #ef4444; font-family: sans-serif; text-align: center; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center;">
                         <h3 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 10px;">⚠️ 啟動失敗</h3>
                         <p style="font-size: 0.9rem; color: #374151; margin-bottom: 20px;">${message}</p>
-                        <button onclick="localStorage.clear(); location.reload()" style="background: #ef4444; color: white; border: none; padding: 12px 24px; border-radius: 99px; margin-bottom: 10px;">重置資料並重整</button>
+                        <button onclick="localStorage.clear(); location.reload()" style="background: #ef4444; color: white; border: none; padding: 12px 24px; border-radius: 99px;">重置並修復</button>
                     </div>
                 `;
             }
@@ -75,7 +91,7 @@
     <script type="text/babel">
         const { useState, useEffect, useRef, useMemo } = React;
 
-        // --- 1. ICON SYSTEM ---
+        // --- 1. ICON SYSTEM (Inline SVG for Max Stability) ---
         const ICONS = {
             Plus: "M5 12h14M12 5v14",
             Trash2: "M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6",
@@ -200,9 +216,7 @@
         const SimplePieChart = ({ data }) => {
             const total = data.reduce((sum, item) => sum + item.value, 0);
             let cumulativeAngle = 0;
-
             if (total === 0) return <div className="flex items-center justify-center h-full text-slate-400 text-xs">無數據</div>;
-
             return (
                 <div className="relative w-48 h-48 mx-auto">
                     <svg viewBox="-1 -1 2 2" style={{ transform: 'rotate(-90deg)' }} className="w-full h-full">
@@ -219,12 +233,7 @@
                             return <path key={index} d={pathData} fill={slice.color} />;
                         })}
                     </svg>
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                         <div className="w-24 h-24 bg-white dark:bg-slate-900 rounded-full flex flex-col items-center justify-center shadow-sm">
-                            <span className="text-xs text-slate-400">Total</span>
-                            <span className="text-sm font-bold text-slate-800 dark:text-white">{(total/1000).toFixed(1)}kg</span>
-                         </div>
-                    </div>
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><div className="w-24 h-24 bg-white dark:bg-slate-900 rounded-full flex flex-col items-center justify-center shadow-sm"><span className="text-xs text-slate-400">Total</span><span className="text-sm font-bold text-slate-800 dark:text-white">{(total/1000).toFixed(1)}kg</span></div></div>
                 </div>
             );
         };
@@ -237,7 +246,6 @@
                 const weight = ownedItems.filter(i => i.category === cat.id).reduce((sum, i) => sum + Number(i.weight), 0);
                 return { name: cat.name, value: weight, color: cat.color };
             }).filter(d => d.value > 0).sort((a,b) => b.value - a.value);
-            
             return (
                 <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
@@ -246,17 +254,7 @@
                             <h3 className="font-bold text-lg text-slate-800 dark:text-white flex items-center gap-2"><Icon name="PieChart" size={20}/> 庫存統計</h3>
                             <button onClick={onClose}><Icon name="X" size={20} className="text-slate-400" /></button>
                         </div>
-                        <div className="flex-1 overflow-y-auto no-scrollbar">
-                            <div className="py-4"><SimplePieChart data={data} /></div>
-                            <div className="space-y-3 mt-2">
-                                {data.map(d => (
-                                    <div key={d.name} className="flex items-center justify-between text-sm">
-                                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full" style={{ backgroundColor: d.color }} /><span className="text-slate-700 dark:text-slate-300">{d.name}</span></div>
-                                        <span className="font-mono text-slate-900 dark:text-white font-medium">{(d.value/1000).toFixed(2)} kg</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+                        <div className="flex-1 overflow-y-auto no-scrollbar"><div className="py-4"><SimplePieChart data={data} /></div><div className="space-y-3 mt-2">{data.map(d => (<div key={d.name} className="flex items-center justify-between text-sm"><div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full" style={{ backgroundColor: d.color }} /><span className="text-slate-700 dark:text-slate-300">{d.name}</span></div><span className="font-mono text-slate-900 dark:text-white font-medium">{(d.value/1000).toFixed(2)} kg</span></div>))}</div></div>
                     </div>
                 </div>
             );
@@ -267,7 +265,8 @@
             const [downloadStatus, setDownloadStatus] = useState('idle');
             useEffect(() => { if (!window.html2canvas) { const script = document.createElement('script'); script.src = 'https://html2canvas.hertzen.com/dist/html2canvas.min.js'; script.async = true; document.body.appendChild(script); } }, []);
             const handleDownload = async () => { if (!window.html2canvas || !cardRef.current) return; setDownloadStatus('processing'); try { await new Promise(resolve => setTimeout(resolve, 500)); const canvas = await window.html2canvas(cardRef.current, { useCORS: true, scale: 2, backgroundColor: '#fafaf9', logging: false }); const link = document.createElement('a'); link.download = `GearTracker-${plan.name.replace(/\s+/g, '_')}.jpg`; link.href = canvas.toDataURL('image/jpeg', 0.9); link.click(); setDownloadStatus('success'); setTimeout(() => setDownloadStatus('idle'), 2000); } catch (err) { setDownloadStatus('error'); } };
-            const planItems = plan.items || [];
+            // FIX: Ensure items array exists
+            const planItems = Array.isArray(plan.items) ? plan.items : [];
             const selectedItems = inventory.filter(item => planItems.includes(item.id));
             const baseWeight = selectedItems.filter(i => !i.isWorn && !i.isConsumable).reduce((sum, i) => sum + Number(i.weight), 0);
             const consumableWeight = selectedItems.filter(i => i.isConsumable).reduce((sum, i) => sum + Number(i.weight), 0);
@@ -285,19 +284,8 @@
                         <div ref={cardRef} className="bg-stone-50 text-stone-800 w-full max-w-2xl rounded-none shadow-xl border border-stone-200 relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none"><Icon name="Mountain" size={300} /></div>
                             <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-emerald-50/50 to-transparent pointer-events-none"></div>
-                            <div className="bg-white/50 p-8 border-b border-stone-200 flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative z-10">
-                                <div>
-                                    <div className="flex items-center gap-2 mb-2"><span className="text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-700 tracking-widest uppercase">Gear Tracker</span></div>
-                                    <h2 className="text-3xl font-bold text-stone-900 tracking-tight">{plan.name}</h2>
-                                    <div className="flex items-center gap-3 mt-2 text-xs text-stone-500 font-mono"><span>{new Date().toISOString().split('T')[0]}</span><span>•</span><span>{selectedItems.length} Items</span></div>
-                                </div>
-                                <div className="text-left md:text-right">
-                                    <div className="text-[10px] text-stone-400 uppercase tracking-widest font-bold mb-1">Base Weight</div>
-                                    <div className="text-4xl font-light font-mono text-stone-800">{(baseWeight / 1000).toFixed(2)}<span className="text-lg text-stone-400 ml-1 font-normal">kg</span></div>
-                                    <div className="text-[10px] text-stone-400 mt-1 font-mono">Total: {((baseWeight+consumableWeight)/1000).toFixed(2)} kg</div>
-                                </div>
-                            </div>
-                            <div className="p-8 relative z-10"><div className="flex flex-col gap-10"><div><h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest flex items-center gap-2 border-b border-stone-200 pb-2 mb-6"><Icon name="User" size={14} /> Wearing System</h3><div className="grid grid-cols-3 gap-4"><ItemSlot item={findCloth('gloves')} label="GLOVES" placeholderIcon={<Icon name="HelpCircle" size={20} />} /><ItemSlot item={findCloth('hat')} label="HEAD" placeholderIcon={<Icon name="User" size={20} />} /><ItemSlot item={findCloth('other')} label="ACC" placeholderIcon={<Icon name="HelpCircle" size={20} />} /><ItemSlot item={findCloth('mid_layer')} label="MID" placeholderIcon={<Icon name="Shirt" size={20} />} /><ItemSlot item={findCloth('base_layer')} label="BASE" placeholderIcon={<Icon name="Shirt" size={20} />} /><ItemSlot item={findCloth('hard_shell_jacket')} label="SHELL" placeholderIcon={<Icon name="Shirt" size={20} />} /><ItemSlot item={findCloth('down_jacket')} label="DOWN" placeholderIcon={<Icon name="Shirt" size={20} />} /><ItemSlot item={findCloth('soft_shell_pants')} label="PANTS" placeholderIcon={<Icon name="User" size={20} />} /><ItemSlot item={findCloth('hard_shell_pants')} label="RAIN" placeholderIcon={<Icon name="User" size={20} />} /><ItemSlot item={findCloth('socks')} label="SOCKS" placeholderIcon={<Icon name="HelpCircle" size={20} />} /><ItemSlot item={findCloth('shoes')} label="BOOTS" placeholderIcon={<Icon name="User" size={20} />} /><div className="aspect-square"></div></div></div><div><h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest flex items-center gap-2 border-b border-stone-200 pb-2 mb-6"><Icon name="Backpack" size={14} /> Backpack Inventory</h3><div className="space-y-6">{otherItemsByCat.map(group => (<div key={group.id}><div className="flex items-center gap-3 mb-3"><span className="text-emerald-700 bg-emerald-50 p-1 rounded-full"><Icon name={group.icon} size={14}/></span><span className="text-[11px] font-bold uppercase text-stone-600 tracking-wider">{group.name}</span><div className="h-px bg-stone-100 flex-1"></div></div><div className="grid grid-cols-2 sm:grid-cols-3 gap-3">{group.items.map(item => (<div key={item.id} className={`bg-white rounded-lg border border-stone-100 p-2 flex gap-3 items-center ${item.isConsumable ? 'border-l-2 border-l-blue-300' : ''}`}><div className="w-10 h-10 shrink-0 bg-stone-50 rounded-md overflow-hidden flex items-center justify-center border border-stone-100">{item.image ? <img src={item.image} alt="" className="w-full h-full object-cover" /> : <div className="text-stone-300"><Icon name={group.icon} size={16}/></div>}</div><div className="min-w-0 flex-1"><p className="text-[11px] text-stone-800 truncate font-medium">{item.name}</p><div className="flex justify-between items-center mt-0.5"><p className="text-[9px] text-stone-400 truncate max-w-[60px]">{item.brand}</p><p className="text-[9px] text-emerald-600 font-mono">{item.weight}g</p></div></div></div>))}</div></div>))}</div></div></div></div>
+                            <div className="bg-white/50 p-8 border-b border-stone-200 flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative z-10"><div><div className="flex items-center gap-2 mb-2"><span className="text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-700 tracking-widest uppercase">Gear Tracker</span></div><h2 className="text-3xl font-bold text-stone-900 tracking-tight">{plan.name}</h2><div className="flex items-center gap-3 mt-2 text-xs text-stone-500 font-mono"><span>{new Date().toISOString().split('T')[0]}</span><span>•</span><span>{selectedItems.length} Items</span></div></div><div className="text-left md:text-right"><div className="text-[10px] text-stone-400 uppercase tracking-widest font-bold mb-1">Base Weight</div><div className="text-4xl font-light font-mono text-stone-800">{(baseWeight / 1000).toFixed(2)}<span className="text-lg text-stone-400 ml-1 font-normal">kg</span></div><div className="text-[10px] text-stone-400 mt-1 font-mono">Total: {((baseWeight+consumableWeight)/1000).toFixed(2)} kg</div></div></div>
+                            <div className="p-8 relative z-10"><div className="flex flex-col gap-10"><div><h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest flex items-center gap-2 border-b border-stone-200 pb-2 mb-6"><Icon name="User" size={14} /> Wearing System</h3><div className="grid grid-cols-3 gap-4"><div className="col-start-2"><ItemSlot item={findCloth('hat')} label="HEAD" placeholderIcon={<Icon name="User" size={20} />} /></div><ItemSlot item={findCloth('mid_layer')} label="MID" placeholderIcon={<Icon name="Shirt" size={20} />} /><ItemSlot item={findCloth('base_layer')} label="BASE" placeholderIcon={<Icon name="Shirt" size={20} />} /><ItemSlot item={findCloth('hard_shell_jacket')} label="SHELL" placeholderIcon={<Icon name="Shirt" size={20} />} /><ItemSlot item={findCloth('gloves')} label="GLOVES" placeholderIcon={<Icon name="HelpCircle" size={20} />} /><ItemSlot item={findCloth('soft_shell_pants')} label="PANTS" placeholderIcon={<Icon name="User" size={20} />} /><ItemSlot item={findCloth('hard_shell_pants')} label="RAIN" placeholderIcon={<Icon name="User" size={20} />} /><ItemSlot item={findCloth('socks')} label="SOCKS" placeholderIcon={<Icon name="HelpCircle" size={20} />} /><ItemSlot item={findCloth('shoes')} label="BOOTS" placeholderIcon={<Icon name="User" size={20} />} /><ItemSlot item={findCloth('other')} label="ACC" placeholderIcon={<Icon name="HelpCircle" size={20} />} /></div></div><div><h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest flex items-center gap-2 border-b border-stone-200 pb-2 mb-6"><Icon name="Backpack" size={14} /> Backpack Inventory</h3><div className="space-y-6">{otherItemsByCat.map(group => (<div key={group.id}><div className="flex items-center gap-3 mb-3"><span className="text-emerald-700 bg-emerald-50 p-1 rounded-full"><Icon name={group.icon} size={14}/></span><span className="text-[11px] font-bold uppercase text-stone-600 tracking-wider">{group.name}</span><div className="h-px bg-stone-100 flex-1"></div></div><div className="grid grid-cols-2 sm:grid-cols-3 gap-3">{group.items.map(item => (<div key={item.id} className={`bg-white rounded-lg border border-stone-100 p-2 flex gap-3 items-center ${item.isConsumable ? 'border-l-2 border-l-blue-300' : ''}`}><div className="w-10 h-10 shrink-0 bg-stone-50 rounded-md overflow-hidden flex items-center justify-center border border-stone-100">{item.image ? <img src={item.image} alt="" className="w-full h-full object-cover" /> : <div className="text-stone-300"><Icon name={group.icon} size={16}/></div>}</div><div className="min-w-0 flex-1"><p className="text-[11px] text-stone-800 truncate font-medium">{item.name}</p><div className="flex justify-between items-center mt-0.5"><p className="text-[9px] text-stone-400 truncate max-w-[60px]">{item.brand}</p><p className="text-[9px] text-emerald-600 font-mono">{item.weight}g</p></div></div></div>))}</div></div>))}</div></div></div></div>
                             <div className="bg-stone-100 p-4 text-center border-t border-stone-200"><div className="flex items-center justify-center gap-2 text-[10px] text-stone-400 font-mono tracking-widest uppercase"><Icon name="Mountain" size={12} /><span>Created with GearTracker</span></div></div>
                         </div>
                     </div>
@@ -327,7 +315,7 @@
                     <div className="bg-white dark:bg-slate-900 w-full max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl pointer-events-auto flex flex-col max-h-[85dvh] animate-modal border border-slate-200 dark:border-slate-800 modal-layout">
                         
                         {/* 1. HEADER - Close Button Only */}
-                        <div className="p-3 border-b border-slate-100 dark:border-slate-800 flex justify-end items-center shrink-0">
+                        <div className="p-3 border-b border-slate-100 dark:border-slate-800 flex justify-end items-center shrink-0 modal-header">
                             <button onClick={onClose} className="p-2 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-500"><Icon name="X" size={20} /></button>
                         </div>
                         
@@ -335,7 +323,7 @@
                         <div className="modal-body p-4 space-y-5 text-slate-900 dark:text-slate-100">
                             
                             {/* ACTION BUTTONS (TOP) - ALWAYS VISIBLE */}
-                            <div className="flex gap-3 mb-4">
+                            <div className="flex gap-3 mb-2 sticky top-0 bg-white dark:bg-slate-900 z-10 pb-2">
                                 {isEditMode && (<button onClick={() => { onDelete(formData.id); onClose(); }} className="p-3 text-red-500 bg-red-50 dark:bg-red-900/20 rounded-xl flex-shrink-0"><Icon name="Trash2" size={20} /></button>)}
                                 {isEditMode && (<button onClick={() => { onSave({ ...formData, id: Date.now(), name: `${formData.name} (複製)` }); onClose(); }} className="p-3 text-slate-500 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl flex-shrink-0"><Icon name="Copy" size={20} /></button>)}
                                 <button onClick={handleSubmit} className="flex-1 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 shadow-md shadow-emerald-200 active:scale-[0.98] transition-all">
@@ -361,7 +349,7 @@
                                 <div><label className="text-xs font-bold text-slate-500 mb-1 block">重量 (g) *</label><input type="number" value={formData.weight} onChange={(e) => setFormData({...formData, weight: e.target.value})} className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono" required /></div>
                                 <div><label className="text-xs font-bold text-slate-500 mb-1 block">價格 ($)</label><input type="number" value={formData.price} onChange={(e) => setFormData({...formData, price: e.target.value})} className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono" /></div>
                             </div>
-                            <div className="flex gap-4">
+                            <div className="flex gap-4 pb-8">
                                 <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 flex-1 p-2 border border-transparent rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800"><input type="checkbox" checked={formData.isConsumable} onChange={(e) => setFormData({...formData, isConsumable: e.target.checked})} className="accent-blue-500 w-4 h-4" /><Icon name="Droplets" size={16} className="text-blue-500" />消耗品</label>
                                 <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 flex-1 p-2 border border-transparent rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800"><input type="checkbox" checked={formData.isWorn} onChange={(e) => setFormData({...formData, isWorn: e.target.checked})} className="accent-amber-500 w-4 h-4" /><Icon name="Footprints" size={16} className="text-amber-500" />身上穿著</label>
                             </div>
@@ -383,7 +371,7 @@
                     <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl shadow-xl z-10 p-5 animate-modal">
                         <h3 className="font-bold text-lg mb-4 text-slate-800 dark:text-white">編輯計畫資訊</h3>
                         
-                        <div className="flex gap-2 mb-4">
+                        <div className="flex gap-2 mb-4 sticky top-0 bg-white dark:bg-slate-900 z-10 pb-2">
                              <button onClick={() => { onSave(data); onClose(); }} className="flex-1 py-2 bg-emerald-600 text-white rounded-lg font-bold">儲存變更</button>
                         </div>
 
